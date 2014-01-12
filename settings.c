@@ -98,7 +98,7 @@ int settings_read_config ()
   config.port = 8332;
 
 #define CHECK_STR(conf_var, c_var)	\
-        if (!g_ascii_strcasecmp (ln.var, conf_var))	\
+        else if (!g_ascii_strcasecmp (ln.var, conf_var))	\
         {	\
           g_free (config.c_var);	\
           config.c_var = g_strdup (ln.val);	\
@@ -116,12 +116,12 @@ int settings_read_config ()
       cfg_pair ln = read_config_line (buffer_get_data (buf));
       if (ln.success)
       {
-        CHECK_STR ("rpcuser", user);
-        CHECK_STR ("rpcpassword", pass);
-        CHECK_STR ("rpcconnect", server);
-        CHECK_STR ("joinerserver", server_url);
         if (!g_ascii_strcasecmp (ln.var, "rpcport"))
           config.port = g_ascii_strtoll (ln.val, NULL, 0);
+        CHECK_STR ("rpcuser", user)
+        CHECK_STR ("rpcpassword", pass)
+        CHECK_STR ("rpcconnect", server)
+        CHECK_STR ("joinerserver", server_url)
       }
       buffer_empty (buf);
     }
@@ -139,14 +139,14 @@ int settings_read_config ()
       cfg_pair ln = read_config_line (buffer_get_data (buf));
       if (ln.success)
       {
-        CHECK_STR ("rpcuser", user);
-        CHECK_STR ("rpcpassword", pass);
-        CHECK_STR ("rpcconnect", server);
-        CHECK_STR ("joinerserver", server_url);
-        CHECK_STR ("sessionid", session_id);
-        CHECK_STR ("submission", submission);
         if (!g_ascii_strcasecmp (ln.var, "rpcport"))
           config.port = g_ascii_strtoll (ln.val, NULL, 0);
+        CHECK_STR ("rpcuser", user)
+        CHECK_STR ("rpcpassword", pass)
+        CHECK_STR ("rpcconnect", server)
+        CHECK_STR ("joinerserver", server_url)
+        CHECK_STR ("sessionid", session_id)
+        CHECK_STR ("submission", submission)
       }
       buffer_empty (buf);
     }
