@@ -269,9 +269,6 @@ static void pp_entry_activate_cb (GtkEntry *en, gpointer dialog)
 
 static gboolean server_status_update (gpointer misc)
 {
-  joiner_update (gui_data.joiner);
-  gui_data.per_input_fee = joiner_per_input_fee (gui_data.joiner);
-
   /* If we have transactions in the pot, get the required privkeys 
    * from the user, even if it's not yet time to sign. */
   if (bitcoin_my_transactions_p () &&
@@ -328,6 +325,9 @@ static gboolean server_status_update (gpointer misc)
     }
     gtk_widget_destroy (dialog);
   }
+
+  joiner_update (gui_data.joiner);
+  gui_data.per_input_fee = joiner_per_input_fee (gui_data.joiner);
 
   gchar *status_text;
   switch (joiner_status (gui_data.joiner))
