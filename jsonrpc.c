@@ -36,8 +36,8 @@ jsonrpc_t *jsonrpc_new (const char *server, unsigned port,
   jsonrpc_t *new_js = malloc (sizeof *new_js);
 
   assert (server != NULL);
-  assert (user != NULL);
-  assert (pass != NULL);
+  if (user == NULL) user = "";
+  if (pass == NULL) pass = "";
 
   if (new_js != NULL)
   {
@@ -102,7 +102,10 @@ json_t *jsonrpc_request (const jsonrpc_t *js, const char *req_name, json_t *data
 
   request_str = json_dumps (request, 0);
   char url[500];
-  snprintf (url, sizeof url, "%s:%s@%s:%u", js->user, js->pass, js->server, js->port);
+  if (js->user[0] != 0)
+    snprintf (url, sizeof url, "%s:%s@%s:%u", js->user, js->pass, js->server, js->port);
+  else
+    snprintf (url, sizeof url, "%s:%u", js->server, js->port);
 
   /* Submit request */
   curl = curl_easy_init ();
