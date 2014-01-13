@@ -12,6 +12,7 @@
  * If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#include "global.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -21,7 +22,6 @@
 #include <jansson.h>
 
 #include "bitcoin.h"
-#include "global.h"
 #include "gtk-coin-selector.h"
 #include "joiner.h"
 #include "jsonrpc.h"
