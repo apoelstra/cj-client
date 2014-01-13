@@ -63,7 +63,7 @@ json_t *output_list (const jsonrpc_t *bitcoind, u64_t total, u64_t target_size, 
   scan = address_bank;
   while (total > target_size + fee)
   {
-    json_object_set_new (rv, scan->address, json_real (FROM_SATOSHI (target_size)));
+    json_object_set_new (rv, scan->address, json_decimal (target_size, 8));
 
     if (scan->next == NULL)
       scan = add_new_address (bitcoind, scan);
@@ -72,8 +72,8 @@ json_t *output_list (const jsonrpc_t *bitcoind, u64_t total, u64_t target_size, 
     total -= target_size;
   }
   /* Add the ragged output and the fee */
-  json_object_set_new (rv, scan->address, json_real (FROM_SATOSHI (total - fee)));
-  json_object_set_new (rv, donation_address, json_real (FROM_SATOSHI (fee)));
+  json_object_set_new (rv, scan->address, json_decimal (total - fee, 8));
+  json_object_set_new (rv, donation_address, json_decimal (fee, 8));
 
   return rv;
 }

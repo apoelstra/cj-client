@@ -22,7 +22,6 @@
 typedef int uid_t;
 #endif
 
-
 /*! \brief The version that is displayed in the window title. */
 #define VERSION "v0.1"
 

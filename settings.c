@@ -184,11 +184,7 @@ void settings_save_config ()
   fh = fopen (get_configuration_filename(), "w");
   if (fh == NULL)
   {
-#ifndef __WIN32__
     int err = g_mkdir (get_configuration_dir(), 0755);
-#else
-    int err = g_mkdir (get_configuration_dir());
-#endif
     fprintf (stderr, "g_mkdir(%s) error %d\n",
              get_configuration_dir(), err);
     fh = fopen (get_configuration_filename(), "w");

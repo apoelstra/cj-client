@@ -123,12 +123,7 @@ void joiner_update (joiner_t *jn)
   free (jn->tx_to_sign);
   jn->tx_to_sign = malloc (buffer_get_size (response));
   /* session_status:time_to_switch:donation_addr:required_fee:most_popular_output:n_transactions:session_id:session_spookwords:tx_to_sign */
-#ifdef __WINDOWS__
-  __mingw_sscanf
-#else
-  sscanf
-#endif
-         (buffer_get_data (response), "%d:%d:%40[1a-zA-Z]:%llu:%llu:%u:%*[^:]:%*[^:]:%s",
+  sscanf (buffer_get_data (response), "%d:%d:%40[1a-zA-Z]:%llu:%llu:%u:%*[^:]:%*[^:]:%s",
           &jn->status, &jn->time_to_switch, jn->donation_address,
           &jn->per_input_fee, &jn->mpo, &jn->n_transactions,
           jn->tx_to_sign);
