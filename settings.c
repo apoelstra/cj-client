@@ -38,8 +38,13 @@ static struct {
 static const char *get_configuration_dir ()
 {
   static char *rv;
+#ifdef __WINDOWS__
+  if (rv == NULL)
+    rv = g_strconcat (g_get_user_config_dir (), "/cjclient", NULL);
+#else
   if (rv == NULL)
     rv = g_strconcat (g_get_home_dir(), "/.cjclient", NULL);
+#endif
   return rv;
 }
 
@@ -47,8 +52,13 @@ static const char *get_configuration_dir ()
 static const char *get_configuration_filename ()
 {
   static char *rv;
+#ifdef __WINDOWS__
+  if (rv == NULL)
+    rv = g_strconcat (g_get_user_config_dir (), "/cjclient/cjclient.conf", NULL);
+#else
   if (rv == NULL)
     rv = g_strconcat (g_get_home_dir(), "/.cjclient/cjclient.conf", NULL);
+#endif
   return rv;
 }
 
@@ -56,8 +66,15 @@ static const char *get_configuration_filename ()
 static const char *get_bitcoin_configuration_filename ()
 {
   static char *rv;
+#ifdef __WINDOWS__
+  if (rv == NULL)
+    rv = g_strconcat (g_get_user_config_dir (), "/Bitcoin/bitcoin.conf", NULL);
+  puts (rv);
+  puts ("on windows");
+#else
   if (rv == NULL)
     rv = g_strconcat (g_get_home_dir(), "/.bitcoin/bitcoin.conf", NULL);
+#endif
   return rv;
 }
 
@@ -110,6 +127,8 @@ int settings_read_config ()
   fh = fopen (get_bitcoin_configuration_filename(), "r");
   if (fh != NULL)
   {
+    fprintf (stderr, "Reading from bitcoin configuration at %s\n",
+             get_bitcoin_configuration_filename());
     buffer_t *buf = buffer_new ();
     while (buffer_fgets (buf, fh))
     {
@@ -165,7 +184,11 @@ void settings_save_config ()
   fh = fopen (get_configuration_filename(), "w");
   if (fh == NULL)
   {
+#ifndef __WIN32__
     int err = g_mkdir (get_configuration_dir(), 0755);
+#else
+    int err = g_mkdir (get_configuration_dir());
+#endif
     fprintf (stderr, "g_mkdir(%s) error %d\n",
              get_configuration_dir(), err);
     fh = fopen (get_configuration_filename(), "w");

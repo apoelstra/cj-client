@@ -18,6 +18,11 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#ifdef __WIN32__
+typedef int uid_t;
+#endif
+
+
 /*! \brief The version that is displayed in the window title. */
 #define VERSION "v0.1"
 

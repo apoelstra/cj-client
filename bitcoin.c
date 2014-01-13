@@ -145,7 +145,12 @@ void bitcoin_add_my_transaction_raw (const jsonrpc_t *js, const char *tx)
     /* Blindly add all the inputs to the pile -- if there are dupes the
      * transaction is not getting off the ground, so that's a safe
      * failure mode. But that shouldn't ever happen. */
-    fprintf (stderr, "Adding a tx with %zu inputs.\n", json_array_size (vin));
+#ifdef __WINDOWS__
+  __mingw_fprintf
+#else
+  fprintf
+#endif
+            (stderr, "Adding a tx with %zu inputs.\n", json_array_size (vin));
     for (unsigned i = 0; i < json_array_size (vin); ++i)
       json_array_append (json_array_get (my_tx, 0), json_array_get (vin, i));
     /* For outputs, we check for dupes and add them together */

@@ -12,11 +12,11 @@
  * If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#include "global.h"
 
 #include <curl/curl.h>
 #include <gtk/gtk.h>
 
-#include "global.h"
 #include "gtk-ui.h"
 #include "settings.h"
 
