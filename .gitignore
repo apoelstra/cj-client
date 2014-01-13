@@ -1,6 +1,7 @@
 cj-client
 cj-client.exe
 Makefile
-CMake*
+CMakeCache*
+CMakeFiles
 cmake*
 
