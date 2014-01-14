@@ -1,5 +1,5 @@
 
-AM_CFLAGS = -Ijansson/include/ $(CJ_CLIENT_CFLAGS)
+AM_CFLAGS = -Ijansson/src/ $(CJ_CLIENT_CFLAGS)
 SUBDIRS = jansson
 bin_PROGRAMS = cj-client
 
