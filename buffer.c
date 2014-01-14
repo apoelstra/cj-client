@@ -81,7 +81,7 @@ size_t buffer_write_data (void *buffer, size_t size, size_t nmemb, void *userp)
 {
   buffer_t *buf = userp;
 
-  if (size * nmemb + buf->used > buf->max_size)
+  while (size * nmemb + buf->used > buf->max_size)
   {
     void *newbuf = realloc (buf->data, 2 * buf->max_size);
     if (newbuf == NULL)
