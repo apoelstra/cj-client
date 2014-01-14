@@ -28,6 +28,7 @@ enum {
 /*! \brief Columns used for internal data store */
 enum {
   SELECTED_COL,
+  ADDRESS_COL,
   TXID_COL,
   FULL_TXID_COL,
   VOUT_COL,
@@ -108,6 +109,7 @@ static void coin_toggled_cb (GtkCellRendererToggle *cell, gchar *path, gpointer 
 static void gtk_coin_selector_init (GtkCoinSelector *cs)
 {
   GtkTreeViewColumn *col_selected;
+  GtkTreeViewColumn *col_addr;
   GtkTreeViewColumn *col_txid;
   GtkTreeViewColumn *col_value;
   GtkTreeViewColumn *col_conf;
@@ -129,6 +131,10 @@ static void gtk_coin_selector_init (GtkCoinSelector *cs)
                                  text_renderer,
                                  "text", DISP_VALUE_COL,
                                  NULL);
+  col_addr = gtk_tv_column_new ("Address",
+                                left_text_renderer,
+                                "text", ADDRESS_COL,
+                                NULL);
   col_txid = gtk_tv_column_new ("Previous Transaction",
                                 left_text_renderer,
                                 "text", TXID_COL,
@@ -141,6 +147,7 @@ static void gtk_coin_selector_init (GtkCoinSelector *cs)
 
   cs->list_store = gtk_list_store_new (N_COLS,
                  /* SELECTED_COL    */ G_TYPE_BOOLEAN,
+                 /* ADDRESS_COL     */ G_TYPE_STRING,
                  /* TXID_COL        */ G_TYPE_STRING,
                  /* FULL_TXID_COL   */ G_TYPE_STRING,
                  /* VOUT_COL        */ G_TYPE_UINT,
@@ -150,6 +157,7 @@ static void gtk_coin_selector_init (GtkCoinSelector *cs)
 
   gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_selected, -1);
   gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_value, -1);
+  gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_addr, -1);
   gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_conf, -1);
   gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_txid, -1);
   gtk_tree_view_set_model (GTK_TREE_VIEW (cs), GTK_TREE_MODEL (cs->list_store));
@@ -179,6 +187,7 @@ void gtk_coin_selector_add_coins (GtkCoinSelector *cs, const utxo_list_t *utxo_l
     gtk_list_store_set (cs->list_store, &iter,
                         SELECTED_COL, FALSE,
                         TXID_COL,     truncated_txid,
+                        ADDRESS_COL,  bitcoin_utxo_address (utxo_list),
                         FULL_TXID_COL, bitcoin_utxo_txid (utxo_list),
                         VOUT_COL,     bitcoin_utxo_vout (utxo_list),
                         VALUE_COL,    bitcoin_utxo_value (utxo_list),

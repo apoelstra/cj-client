@@ -28,6 +28,9 @@ utxo_list_t *bitcoin_get_utxos (jsonrpc_t *);
 /*! \brief Destroys a linked list of utxos */
 void bitcoin_utxos_destroy (utxo_list_t *);
 
+/*! \brief Getter for utxo address */
+const char *bitcoin_utxo_address (const utxo_list_t *);
+
 /*! \brief Getter for utxo txid */
 const char *bitcoin_utxo_txid (const utxo_list_t *);
 

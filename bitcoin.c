@@ -21,6 +21,7 @@
 
 struct utxo {
   char *txid;
+  char *address;
   unsigned vout;
   unsigned nconfirms;
   u64_t value;
@@ -62,6 +63,7 @@ utxo_list_t *bitcoin_get_utxos (jsonrpc_t *js)
         {
           int value_pos = json_decimal_decimal_pos (json_object_get (json_coin, "amount"));
           coin->txid = x_strdup (json_string_value (json_object_get (json_coin, "txid")));
+          coin->address = x_strdup (json_string_value (json_object_get (json_coin, "address")));
           coin->vout = json_decimal_value (json_object_get (json_coin, "vout"));
           coin->value = json_decimal_value (json_object_get (json_coin, "amount"));
           coin->nconfirms = json_decimal_value (json_object_get (json_coin, "confirmations"));
@@ -95,6 +97,7 @@ void bitcoin_utxos_destroy (utxo_list_t *txlist)
     return;
   if (txlist->next)
     bitcoin_utxos_destroy (txlist->next);
+  free (txlist->address);
   free (txlist->txid);
   free (txlist);
 }
@@ -104,6 +107,12 @@ void bitcoin_utxos_destroy (utxo_list_t *txlist)
 const char *bitcoin_utxo_txid (const utxo_list_t *txlist)
 {
   return txlist == NULL ? NULL : txlist->txid;
+}
+
+/*! \brief Getter for utxo address */
+const char *bitcoin_utxo_address (const utxo_list_t *txlist)
+{
+  return txlist == NULL ? NULL : txlist->address;
 }
 
 /*! \brief Getter for utxo vout */
