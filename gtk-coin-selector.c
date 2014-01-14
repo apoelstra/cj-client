@@ -131,18 +131,22 @@ static void gtk_coin_selector_init (GtkCoinSelector *cs)
                                  text_renderer,
                                  "text", DISP_VALUE_COL,
                                  NULL);
+  gtk_tree_view_column_set_sort_column_id (col_value, DISP_VALUE_COL);
   col_addr = gtk_tv_column_new ("Address",
                                 left_text_renderer,
                                 "text", ADDRESS_COL,
                                 NULL);
+  gtk_tree_view_column_set_sort_column_id (col_addr, ADDRESS_COL);
   col_txid = gtk_tv_column_new ("Previous Transaction",
                                 left_text_renderer,
                                 "text", TXID_COL,
                                 NULL);
+  gtk_tree_view_column_set_sort_column_id (col_txid, TXID_COL);
   col_conf = gtk_tv_column_new ("Confirmations",
                                 text_renderer,
                                 "text", NCONFIRMS_COL,
                                 NULL);
+  gtk_tree_view_column_set_sort_column_id (col_conf, NCONFIRMS_COL);
   #undef gtk_tv_column_new
 
   cs->list_store = gtk_list_store_new (N_COLS,
