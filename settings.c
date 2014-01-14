@@ -19,6 +19,9 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+#ifdef __WINDOWS__
+#include <shlobj.h>
+#endif
 
 #include "buffer.h"
 #include "global.h"
@@ -34,13 +37,27 @@ static struct {
 } config;
 
 /* TODO fix these functions for win/mac */
+#ifdef __WINDOWS__
+const char *get_special_folder (int id)
+{
+  static char pszPath[MAX_PATH] = {0};
+
+  if(SHGetSpecialFolderPathA(NULL, pszPath, id, 0))
+    return pszPath;
+
+  return "";
+}
+#endif
+
+
 /*! \brief Returns the directory where we store our data */
 static const char *get_configuration_dir ()
 {
   static char *rv;
 #ifdef __WINDOWS__
   if (rv == NULL)
-    rv = g_strconcat (g_get_user_config_dir (), "/cjclient", NULL);
+    rv = g_strconcat (get_special_folder (CSIDL_APPDATA), "/cjclient", NULL);
+  puts (rv);
 #else
   if (rv == NULL)
     rv = g_strconcat (g_get_home_dir(), "/.cjclient", NULL);
@@ -52,13 +69,8 @@ static const char *get_configuration_dir ()
 static const char *get_configuration_filename ()
 {
   static char *rv;
-#ifdef __WINDOWS__
   if (rv == NULL)
-    rv = g_strconcat (g_get_user_config_dir (), "/cjclient/cjclient.conf", NULL);
-#else
-  if (rv == NULL)
-    rv = g_strconcat (g_get_home_dir(), "/.cjclient/cjclient.conf", NULL);
-#endif
+    rv = g_strconcat (get_configuration_dir (), "/cjclient.conf", NULL);
   return rv;
 }
 
@@ -68,9 +80,7 @@ static const char *get_bitcoin_configuration_filename ()
   static char *rv;
 #ifdef __WINDOWS__
   if (rv == NULL)
-    rv = g_strconcat (g_get_user_config_dir (), "/Bitcoin/bitcoin.conf", NULL);
-  puts (rv);
-  puts ("on windows");
+    rv = g_strconcat (get_special_folder (CSIDL_APPDATA), "/Bitcoin/bitcoin.conf", NULL);
 #else
   if (rv == NULL)
     rv = g_strconcat (g_get_home_dir(), "/.bitcoin/bitcoin.conf", NULL);
