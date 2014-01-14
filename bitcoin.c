@@ -60,11 +60,24 @@ utxo_list_t *bitcoin_get_utxos (jsonrpc_t *js)
         utxo_list_t *coin = malloc (sizeof *coin);
         if (coin != NULL)
         {
+          int value_pos = json_decimal_decimal_pos (json_object_get (json_coin, "amount"));
           coin->txid = x_strdup (json_string_value (json_object_get (json_coin, "txid")));
-          coin->vout = json_integer_value (json_object_get (json_coin, "vout"));
-          coin->value = TO_SATOSHI (json_real_value (json_object_get (json_coin, "amount")));
-          coin->nconfirms = json_integer_value (json_object_get (json_coin, "confirmations"));
+          coin->vout = json_decimal_value (json_object_get (json_coin, "vout"));
+          coin->value = json_decimal_value (json_object_get (json_coin, "amount"));
+          coin->nconfirms = json_decimal_value (json_object_get (json_coin, "confirmations"));
           coin->next = rv;
+          /* Adjust integer return value of json_decimal_value() in case
+           * bitcoind did not give us exactly 8 decimal places. */
+          while (value_pos > 8)
+          {
+            coin->value /= 10;
+            --value_pos;
+          }
+          while (value_pos < 8)
+          {
+            coin->value *= 10;
+            --value_pos;
+          }
           rv = coin;
         }
       } else fputs ("Strange things are afoot at the Circle-K.", stderr);

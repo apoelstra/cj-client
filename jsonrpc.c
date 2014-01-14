@@ -125,7 +125,9 @@ json_t *jsonrpc_request (const jsonrpc_t *js, const char *req_name, json_t *data
   buffer_null_terminate (response);
 
   /* Parse response */
-  json_t *rv = json_loads (buffer_get_data (response), 0, &json_error);
+  json_t *rv = json_loads (buffer_get_data (response),
+                           JSON_READ_DECIMALS,
+                           &json_error);
   /* A parse error probably means bitcoind didn't like us */
   if (rv == NULL)
     fprintf (stderr, "Connection error: %s\nJSON parse error: %s\n", buffer_get_data (response), json_error.text);
