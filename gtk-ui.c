@@ -28,6 +28,7 @@
 #include "output.h"
 #include "settings.h"
 
+static void popup_message (const char *title, const char *text);
 static void view_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void submit_button_clicked_cb (GtkButton *bt, gpointer misc);
 static gboolean server_status_update (gpointer misc);
@@ -156,7 +157,10 @@ static void view_button_clicked_cb (GtkButton *bt, gpointer misc)
 
   json_t *tx_json = get_tx_json (cs_total, target_val, fee, count);
   if (tx_json == NULL)
+  {
+    popup_message ("View Transaction", "Couldn't create transaction (not enough inputs).");
     return;
+  }
   char *tx_text = json_dumps (tx_json, JSON_INDENT (4));
 
   /* Display the window */
