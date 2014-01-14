@@ -63,14 +63,23 @@ void bitcoin_add_my_transaction_raw (const jsonrpc_t *, const char *tx);
  */
 char *bitcoin_get_my_transactions_raw (const jsonrpc_t *);
 
-/*! \brief Checks if a given transaction is a superset of all
- *  previously-submitted transactions.
+/*! \brief Checks if a given transaction's outputs is a superset
+ *  of all previously-submitted transactions' outputs.
  *
  *  The one exception is: whatever is passed as the donation
  *  address, we do not check that that output is still present,
  *  since it won't be and that's fine.
  */
 int bitcoin_has_my_transactions_raw (const jsonrpc_t *js, const char *tx, const char *donation_address);
+
+/*! \brief Checks that a signed transaction's signed inputs are only
+ *  ones that were actually submitted.
+ *
+ *  If we sign outputs that we didn't submit, presumably some player
+ *  has added evil inputs to trick us into spending money we didn't
+ *  mean to.
+ */
+int bitcoin_has_only_my_utxos_raw (const jsonrpc_t *js, const char *tx);
 
 /*! \brief Getter for 'have I submitted any transactions' */
 int bitcoin_my_transactions_p ();

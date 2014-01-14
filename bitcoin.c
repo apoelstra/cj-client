@@ -248,9 +248,58 @@ int bitcoin_has_my_transactions_raw (const jsonrpc_t *js, const char *tx, const 
         return 0;
     }
   }
+  else return 0;  /* should fail if we can't decode */
 
   return 1;
 }
+
+
+/*! \brief Checks that a signed transaction's signed inputs are only
+ *  ones that were actually submitted. */
+int bitcoin_has_only_my_utxos_raw (const jsonrpc_t *js, const char *tx)
+{
+  json_t *params = json_array();
+  json_array_append_new (params, json_string (tx));
+
+  json_t *response = jsonrpc_request (js, "decoderawtransaction", params);
+  json_t *decodetx = json_object_get (response, "result");
+  if (json_is_object (decodetx))
+  {
+    json_t *vin = json_object_get (decodetx, "vin");
+    unsigned i;
+
+    for (i = 0; i < json_array_size (vin); ++i)
+    {
+      json_t *input = json_array_get (vin, i);
+      json_t *ss = json_object_get (json_object_get (input, "scriptSig"), "hex");
+      const char *hex = json_string_value (ss);
+      if (hex[0] != 0)
+      {
+        unsigned j;
+        int found = 0;
+        json_t *old_ins = json_array_get (my_tx, 0);
+        for (j = 0; j < json_array_size (old_ins); ++j)
+        {
+          json_t *old_input = json_array_get (old_ins, j);
+          const char *old_txid = json_string_value (json_object_get (old_input, "txid"));
+          const char *txid = json_string_value (json_object_get (input, "txid"));
+          int old_vout = json_decimal_value (json_object_get (old_input, "vout"));
+          int vout = json_decimal_value (json_object_get (input, "vout"));
+          if (old_vout == vout && !strcmp (txid, old_txid))
+            found = 1;
+        }
+        if (found == 0)
+          return 0;
+      }
+    }
+  }
+  else return 0;  /* should fail if we can't decode */
+
+  json_decref (response);
+  return 1;
+}
+
+/*! \brief Getter for 'have I submitted any transactions' */
 
 /*! \brief Getter for 'have I submitted any transactions' */
 int bitcoin_my_transactions_p ()
@@ -359,6 +408,9 @@ char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx)
     json_t *res = json_object_get (json_object_get (response, "result"), "hex");
     rv = malloc (1 + strlen (json_string_value (res)));
     strcpy (rv, json_string_value (res));
+  } else {
+    fputs ("bitcoind failed to sign the raw transaction, it said:\n", stderr);
+    fputs (json_dumps (response, JSON_INDENT (4)), NULL);
   }
 
   json_decref (response);

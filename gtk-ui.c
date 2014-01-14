@@ -366,11 +366,15 @@ static gboolean server_status_update (gpointer misc)
         char *signed_tx = bitcoin_my_transactions_sign_raw (gui_data.bitcoind, to_sign);
         if (signed_tx != NULL)
         {
-          fprintf (stderr, "Submitted raw to joiner: %s\n", signed_tx);
-          joiner_submit_signed (gui_data.joiner, signed_tx);
-          bitcoin_my_transactions_reset ();
-          settings_set_submission (NULL);
-          settings_save_config ();
+          if (bitcoin_has_only_my_utxos_raw (gui_data.bitcoind, signed_tx))
+          {
+            fprintf (stderr, "Submitted raw to joiner: %s\n", signed_tx);
+            joiner_submit_signed (gui_data.joiner, signed_tx);
+            bitcoin_my_transactions_reset ();
+            settings_set_submission (NULL);
+            settings_save_config ();
+          }
+          else fprintf (stderr, "Signed inputs that weren't submitted, refusing to submit: %s\n", to_sign);
           free (signed_tx);
         }
         else fprintf (stderr, "Failed to sign raw transaction: %s\n", to_sign);
