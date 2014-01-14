@@ -420,7 +420,6 @@ void gui_activate (GtkApplication *app, gpointer misc)
   gui_data.window = gtk_application_window_new (app);
   gtk_window_set_title (GTK_WINDOW (gui_data.window),
   		"Coinjoiner Client " VERSION);
-  gtk_window_set_keep_above (GTK_WINDOW (gui_data.window), TRUE);
   
   builder = gtk_builder_new ();
   gtk_builder_add_from_string (builder,
