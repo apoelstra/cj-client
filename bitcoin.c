@@ -419,7 +419,7 @@ char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx)
     strcpy (rv, json_string_value (res));
   } else {
     fputs ("bitcoind failed to sign the raw transaction, it said:\n", stderr);
-    fputs (json_dumps (response, JSON_INDENT (4)), NULL);
+    fputs (json_dumps (response, JSON_INDENT (4)), stderr);
   }
 
   json_decref (response);
