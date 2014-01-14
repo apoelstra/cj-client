@@ -223,7 +223,7 @@ static int do_dump(const json_t *json, size_t flags, int depth,
               buffer[i + 1] = '.';
             }
 
-            return dump(buffer, size + 1, data);
+            return dump(buffer, size + (pos > 0), data);
         }
 
         case JSON_REAL:
