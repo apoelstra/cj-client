@@ -34,6 +34,9 @@ static struct {
   char *server_url;
   char *session_id;
   char *submission;
+  int save_rpc_server;
+  int save_rpc_auth;
+  int save_rpc_port;
 } config;
 
 /* TODO fix these functions for win/mac */
@@ -123,12 +126,24 @@ int settings_read_config ()
   config.user = config.pass = config.session_id = config.submission = NULL;
   config.server = g_strdup ("localhost");
   config.port = 8332;
+  config.save_rpc_server =
+  config.save_rpc_auth =
+  config.save_rpc_port = 0;
 
 #define CHECK_STR(conf_var, c_var)	\
         else if (!g_ascii_strcasecmp (ln.var, conf_var))	\
         {	\
           g_free (config.c_var);	\
           config.c_var = g_strdup (ln.val);	\
+          free (ln.val);	\
+          free (ln.var);	\
+        }
+#define CHECK_STR_SAVE(conf_var, c_var, save_var)	\
+        else if (!g_ascii_strcasecmp (ln.var, conf_var))	\
+        {	\
+          g_free (config.c_var);	\
+          config.c_var = g_strdup (ln.val);	\
+          config.save_var = 1;	\
           free (ln.val);	\
           free (ln.var);	\
         }
@@ -169,10 +184,13 @@ int settings_read_config ()
       if (ln.success)
       {
         if (!g_ascii_strcasecmp (ln.var, "rpcport"))
+        {
           config.port = g_ascii_strtoll (ln.val, NULL, 0);
-        CHECK_STR ("rpcuser", user)
-        CHECK_STR ("rpcpassword", pass)
-        CHECK_STR ("rpcconnect", server)
+          config.save_rpc_port = 1;
+        }
+        CHECK_STR_SAVE ("rpcuser", user, save_rpc_auth)
+        CHECK_STR_SAVE ("rpcpassword", pass, save_rpc_auth)
+        CHECK_STR_SAVE ("rpcconnect", server, save_rpc_server)
         CHECK_STR ("joinerserver", server_url)
         CHECK_STR ("sessionid", session_id)
         CHECK_STR ("submission", submission)
@@ -211,6 +229,15 @@ void settings_save_config ()
     fprintf (fh, "sessionid = %s\n", config.session_id);
   if (config.submission != NULL)
     fprintf (fh, "submission = %s\n", config.submission);
+  if (config.save_rpc_server)
+    fprintf (fh, "rpcconnect = %s\n", config.server);
+  if (config.save_rpc_port)
+    fprintf (fh, "rpcport = %d\n", config.port);
+  if (config.save_rpc_auth)
+  {
+    fprintf (fh, "rpcuser = %s\n", config.user);
+    fprintf (fh, "rpcpass = %s\n", config.pass);
+  }
   fputs ("\n\n", fh);
   fclose (fh);
 }
