@@ -86,6 +86,75 @@ static void menu_forgetsession (GSimpleAction *action, GVariant *parameter, gpoi
   (void) misc;
 }
 
+static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer misc)
+{
+  GtkWidget *label[4], *input[4];
+  GtkWidget *dialog, *content, *grid;
+  dialog = gtk_dialog_new_with_buttons ("Settings",
+                                        GTK_WINDOW (gui_data.window),
+                                        GTK_DIALOG_DESTROY_WITH_PARENT,
+                                        "_OK", GTK_RESPONSE_ACCEPT,
+                                        "_Cancel", GTK_RESPONSE_REJECT,
+                                        NULL);
+
+  label[0] = gtk_label_new ("RPC Server:");
+  label[1] = gtk_label_new ("Port:");
+  label[2] = gtk_label_new ("Username:");
+  label[3] = gtk_label_new ("Password:");
+  gtk_misc_set_alignment (GTK_MISC (label[0]), 1, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label[1]), 1, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label[2]), 1, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label[3]), 1, 0.5);
+  input[0] = gtk_entry_new ();
+  input[1] = gtk_spin_button_new_with_range (0, 65535, 1);
+  input[2] = gtk_entry_new ();
+  input[3] = gtk_entry_new ();
+
+  gtk_entry_set_text (GTK_ENTRY (input[0]), settings_get_rpc_server());
+  gtk_spin_button_set_value (GTK_SPIN_BUTTON (input[1]), settings_get_rpc_port());
+  gtk_entry_set_text (GTK_ENTRY (input[2]), settings_get_rpc_user());
+  gtk_entry_set_text (GTK_ENTRY (input[3]), settings_get_rpc_pass());
+
+  grid = gtk_grid_new ();
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
+
+  gtk_grid_attach (GTK_GRID (grid), label[0], 0, 0, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), label[1], 0, 1, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), label[2], 0, 2, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), label[3], 0, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), input[0], 1, 0, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), input[1], 1, 1, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), input[2], 1, 2, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), input[3], 1, 3, 1, 1);
+
+  content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+  gtk_container_set_border_width (GTK_CONTAINER (content), 15);
+  gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
+  gtk_widget_show_all (dialog);
+
+  if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+  {
+    settings_set_rpc_server (gtk_entry_get_text (GTK_ENTRY (input[0])));
+    settings_set_rpc_port (gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (input[1])));
+    settings_set_rpc_user (gtk_entry_get_text (GTK_ENTRY (input[2])));
+    settings_set_rpc_pass (gtk_entry_get_text (GTK_ENTRY (input[3])));
+
+    /* Reset everything */
+    jsonrpc_destroy (gui_data.bitcoind);
+    gui_data.bitcoind = jsonrpc_new (settings_get_rpc_server (),
+                                     settings_get_rpc_port (),
+                                     settings_get_rpc_user (),
+                                     settings_get_rpc_pass ());
+  }
+
+  gtk_widget_destroy (dialog);
+
+  (void) action;
+  (void) parameter;
+  (void) misc;
+}
+
 /* end MENU CALLBACKS */
 /* SIGNAL CALLBACKS */
 static void update_display ()
@@ -403,6 +472,7 @@ static GActionEntry app_entries[] = {
   { "viewtx", menu_viewtx, NULL, NULL, NULL, {0} },
   { "submittx", menu_submittx, NULL, NULL, NULL, {0} },
   { "forgetsession", menu_forgetsession, NULL, NULL, NULL, {0} },
+  { "settings", menu_settings, NULL, NULL, NULL, {0} },
 };
 
 

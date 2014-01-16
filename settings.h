@@ -35,6 +35,15 @@ const char *settings_get_session_id ();
 /*! \brief Getter for submitted rawtx */
 const char *settings_get_submission ();
 
+/*! \brief Setter for rpc-server */
+void settings_set_rpc_server (const char *);
+/*! \brief Setter for rpc-port */
+void settings_set_rpc_port (int);
+/*! \brief Setter for rpc-user */
+void settings_set_rpc_user (const char *);
+/*! \brief Setter for rpc-pass */
+void settings_set_rpc_pass (const char *);
+
 /*! \brief Setter for session ID */
 void settings_set_session_id (const char *);
 /*! \brief Setter for submitted rawtx */

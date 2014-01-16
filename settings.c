@@ -253,6 +253,29 @@ const char *settings_get_session_id () { return config.session_id; }
 const char *settings_get_submission () { return config.submission; }
 
 /* SETTERS */
+void settings_set_rpc_server (const char *server)
+{
+  g_free (config.server);
+  config.session_id = server ? g_strdup (server) : NULL;
+}
+
+void settings_set_rpc_port (int port)
+{
+  config.port = port;
+}
+
+void settings_set_rpc_user (const char *user)
+{
+  g_free (config.user);
+  config.session_id = user ? g_strdup (user) : NULL;
+}
+
+void settings_set_rpc_pass (const char *pass)
+{
+  g_free (config.pass);
+  config.session_id = pass ? g_strdup (pass) : NULL;
+}
+
 void settings_set_session_id (const char *sess_id)
 {
   g_free (config.session_id);
