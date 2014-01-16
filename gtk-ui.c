@@ -139,6 +139,7 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
     settings_set_rpc_port (gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (input[1])));
     settings_set_rpc_user (gtk_entry_get_text (GTK_ENTRY (input[2])));
     settings_set_rpc_pass (gtk_entry_get_text (GTK_ENTRY (input[3])));
+    settings_save_config ();
 
     /* Reset everything */
     jsonrpc_destroy (gui_data.bitcoind);
@@ -146,6 +147,7 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
                                      settings_get_rpc_port (),
                                      settings_get_rpc_user (),
                                      settings_get_rpc_pass ());
+    server_status_update (NULL);
   }
 
   gtk_widget_destroy (dialog);
@@ -400,6 +402,16 @@ static gboolean server_status_update (gpointer misc)
     gtk_widget_destroy (dialog);
   }
 
+  /* Refresh the coins list */
+  utxo_list_t *coins = bitcoin_get_utxos (gui_data.bitcoind);
+  if (coins != NULL)
+  {
+    gtk_coin_selector_clear (GTK_COIN_SELECTOR (gui_data.coin_selector));
+    gtk_coin_selector_add_coins (GTK_COIN_SELECTOR (gui_data.coin_selector), coins);
+  }
+  bitcoin_utxos_destroy (coins);
+
+  /* Query the joiner */
   joiner_update (gui_data.joiner);
   gui_data.per_input_fee = joiner_per_input_fee (gui_data.joiner);
 
@@ -563,10 +575,6 @@ void gui_activate (GtkApplication *app, gpointer misc)
                                    settings_get_rpc_port (),
                                    settings_get_rpc_user (),
                                    settings_get_rpc_pass ());
-  utxo_list_t *coins = bitcoin_get_utxos (gui_data.bitcoind);
-  if (coins != NULL)
-    gtk_coin_selector_add_coins (GTK_COIN_SELECTOR (gui_data.coin_selector), coins);
-  bitcoin_utxos_destroy (coins);
   if (settings_get_submission() != NULL)
   {
     fputs ("Found transaction already in the joiner.\n", stderr);

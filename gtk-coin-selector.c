@@ -203,6 +203,12 @@ void gtk_coin_selector_add_coins (GtkCoinSelector *cs, const utxo_list_t *utxo_l
   }
 }
 
+/*! \brief Remove all coins from the GtkCoinSelector */
+void gtk_coin_selector_clear (GtkCoinSelector *cs)
+{
+  gtk_list_store_clear (cs->list_store);
+}
+
 /*! \brief Getter for fees */
 unsigned gtk_coin_selector_count (GtkCoinSelector *cs)
 {

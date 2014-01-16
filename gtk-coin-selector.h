@@ -41,5 +41,8 @@ unsigned gtk_coin_selector_count (GtkCoinSelector *cs);
 u64_t gtk_coin_selector_total (GtkCoinSelector *);
 json_t *gtk_coin_selector_list (GtkCoinSelector *);
 
+/*! \brief Remove all coins from the GtkCoinSelector */
+void gtk_coin_selector_clear (GtkCoinSelector *cs);
+
 G_END_DECLS  /* keep c++ happy */
 #endif
