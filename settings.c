@@ -256,23 +256,27 @@ const char *settings_get_submission () { return config.submission; }
 void settings_set_rpc_server (const char *server)
 {
   g_free (config.server);
+  config.save_rpc_server = 1;
   config.session_id = server ? g_strdup (server) : NULL;
 }
 
 void settings_set_rpc_port (int port)
 {
+  config.save_rpc_port = 1;
   config.port = port;
 }
 
 void settings_set_rpc_user (const char *user)
 {
   g_free (config.user);
+  config.save_rpc_auth = 1;
   config.session_id = user ? g_strdup (user) : NULL;
 }
 
 void settings_set_rpc_pass (const char *pass)
 {
   g_free (config.pass);
+  config.save_rpc_auth = 1;
   config.session_id = pass ? g_strdup (pass) : NULL;
 }
 
