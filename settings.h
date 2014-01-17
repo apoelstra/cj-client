@@ -43,7 +43,8 @@ void settings_set_rpc_port (int);
 void settings_set_rpc_user (const char *);
 /*! \brief Setter for rpc-pass */
 void settings_set_rpc_pass (const char *);
-
+/*! \brief Getter for joiner URL */
+void settings_set_server_url ();
 /*! \brief Setter for session ID */
 void settings_set_session_id (const char *);
 /*! \brief Setter for submitted rawtx */

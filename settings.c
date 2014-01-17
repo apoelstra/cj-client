@@ -257,7 +257,7 @@ void settings_set_rpc_server (const char *server)
 {
   g_free (config.server);
   config.save_rpc_server = 1;
-  config.session_id = server ? g_strdup (server) : NULL;
+  config.server = server ? g_strdup (server) : NULL;
 }
 
 void settings_set_rpc_port (int port)
@@ -270,14 +270,20 @@ void settings_set_rpc_user (const char *user)
 {
   g_free (config.user);
   config.save_rpc_auth = 1;
-  config.session_id = user ? g_strdup (user) : NULL;
+  config.user = user ? g_strdup (user) : NULL;
 }
 
 void settings_set_rpc_pass (const char *pass)
 {
   g_free (config.pass);
   config.save_rpc_auth = 1;
-  config.session_id = pass ? g_strdup (pass) : NULL;
+  config.pass = pass ? g_strdup (pass) : NULL;
+}
+
+void settings_set_server_url (const char *server)
+{
+  g_free (config.server_url);
+  config.server_url = server ? g_strdup (server) : NULL;
 }
 
 void settings_set_session_id (const char *sess_id)

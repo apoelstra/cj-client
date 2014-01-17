@@ -17,6 +17,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <gtk/gtk.h>
 #include <jansson.h>
@@ -88,7 +89,7 @@ static void menu_forgetsession (GSimpleAction *action, GVariant *parameter, gpoi
 
 static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer misc)
 {
-  GtkWidget *label[4], *input[4];
+  GtkWidget *label[5], *input[5];
   GtkWidget *dialog, *content, *grid;
   dialog = gtk_dialog_new_with_buttons ("Settings",
                                         GTK_WINDOW (gui_data.window),
@@ -101,28 +102,34 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
   label[1] = gtk_label_new ("Port:");
   label[2] = gtk_label_new ("Username:");
   label[3] = gtk_label_new ("Password:");
+  label[4] = gtk_label_new ("Joiner Server:");
   gtk_misc_set_alignment (GTK_MISC (label[0]), 1, 0.5);
   gtk_misc_set_alignment (GTK_MISC (label[1]), 1, 0.5);
   gtk_misc_set_alignment (GTK_MISC (label[2]), 1, 0.5);
   gtk_misc_set_alignment (GTK_MISC (label[3]), 1, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label[4]), 1, 0.5);
   input[0] = gtk_entry_new ();
   input[1] = gtk_spin_button_new_with_range (0, 65535, 1);
   input[2] = gtk_entry_new ();
   input[3] = gtk_entry_new ();
+  input[4] = gtk_entry_new ();
 
   gtk_entry_set_text (GTK_ENTRY (input[0]), settings_get_rpc_server());
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (input[1]), settings_get_rpc_port());
   gtk_entry_set_text (GTK_ENTRY (input[2]), settings_get_rpc_user());
   gtk_entry_set_text (GTK_ENTRY (input[3]), settings_get_rpc_pass());
+  gtk_entry_set_text (GTK_ENTRY (input[4]), settings_get_server_url());
 
   grid = gtk_grid_new ();
   gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
   gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
 
+  gtk_grid_attach (GTK_GRID (grid), label[4], 0, -1, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), label[0], 0, 0, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), label[1], 0, 1, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), label[2], 0, 2, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), label[3], 0, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), input[4], 1, -1, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), input[0], 1, 0, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), input[1], 1, 1, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), input[2], 1, 2, 1, 1);
@@ -135,10 +142,17 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
 
   if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
   {
+    /* Warn user about server changes */
+    if (strcmp (gtk_entry_get_text (GTK_ENTRY (input[4])),
+                settings_get_server_url()))
+      popup_message ("Settings", "Note that if you changed the joiner URL, "
+                                 "you may need to click Sesson->Forget Sesson.");
+
     settings_set_rpc_server (gtk_entry_get_text (GTK_ENTRY (input[0])));
     settings_set_rpc_port (gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (input[1])));
     settings_set_rpc_user (gtk_entry_get_text (GTK_ENTRY (input[2])));
     settings_set_rpc_pass (gtk_entry_get_text (GTK_ENTRY (input[3])));
+    settings_set_server_url (gtk_entry_get_text (GTK_ENTRY (input[4])));
     settings_save_config ();
 
     /* Reset everything */
@@ -147,6 +161,9 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
                                      settings_get_rpc_port (),
                                      settings_get_rpc_user (),
                                      settings_get_rpc_pass ());
+    joiner_destroy (gui_data.joiner);
+    gui_data.joiner = joiner_new (settings_get_server_url (),
+                                  settings_get_session_id ());
     server_status_update (NULL);
   }
 
