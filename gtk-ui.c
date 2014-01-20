@@ -24,6 +24,7 @@
 
 #include "bitcoin.h"
 #include "gtk-coin-selector.h"
+#include "gtk-util.h"
 #include "joiner.h"
 #include "jsonrpc.h"
 #include "output.h"
@@ -89,7 +90,7 @@ static void menu_forgetsession (GSimpleAction *action, GVariant *parameter, gpoi
 
 static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer misc)
 {
-  GtkWidget *label[5], *input[5];
+  ui_input_list_t *uil = NULL;
   GtkWidget *dialog, *content, *grid;
   dialog = gtk_dialog_new_with_buttons ("Settings",
                                         GTK_WINDOW (gui_data.window),
@@ -98,42 +99,13 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
                                         "_Cancel", GTK_RESPONSE_REJECT,
                                         NULL);
 
-  label[0] = gtk_label_new ("RPC Server:");
-  label[1] = gtk_label_new ("Port:");
-  label[2] = gtk_label_new ("Username:");
-  label[3] = gtk_label_new ("Password:");
-  label[4] = gtk_label_new ("Joiner Server:");
-  gtk_misc_set_alignment (GTK_MISC (label[0]), 1, 0.5);
-  gtk_misc_set_alignment (GTK_MISC (label[1]), 1, 0.5);
-  gtk_misc_set_alignment (GTK_MISC (label[2]), 1, 0.5);
-  gtk_misc_set_alignment (GTK_MISC (label[3]), 1, 0.5);
-  gtk_misc_set_alignment (GTK_MISC (label[4]), 1, 0.5);
-  input[0] = gtk_entry_new ();
-  input[1] = gtk_spin_button_new_with_range (0, 65535, 1);
-  input[2] = gtk_entry_new ();
-  input[3] = gtk_entry_new ();
-  input[4] = gtk_entry_new ();
+  ui_input_list_push_text (&uil, "RPC Server:", settings_get_rpc_server());
+  ui_input_list_push_spinbox (&uil, "Port:", settings_get_rpc_port(), 0, 65535, 1);
+  ui_input_list_push_text (&uil, "Username:", settings_get_rpc_user());
+  ui_input_list_push_text (&uil, "Password:", settings_get_rpc_pass());
+  ui_input_list_push_text (&uil, "Joiner Server:", settings_get_server_url());
 
-  gtk_entry_set_text (GTK_ENTRY (input[0]), settings_get_rpc_server());
-  gtk_spin_button_set_value (GTK_SPIN_BUTTON (input[1]), settings_get_rpc_port());
-  gtk_entry_set_text (GTK_ENTRY (input[2]), settings_get_rpc_user());
-  gtk_entry_set_text (GTK_ENTRY (input[3]), settings_get_rpc_pass());
-  gtk_entry_set_text (GTK_ENTRY (input[4]), settings_get_server_url());
-
-  grid = gtk_grid_new ();
-  gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
-  gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
-
-  gtk_grid_attach (GTK_GRID (grid), label[4], 0, -1, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), label[0], 0, 0, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), label[1], 0, 1, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), label[2], 0, 2, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), label[3], 0, 3, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), input[4], 1, -1, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), input[0], 1, 0, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), input[1], 1, 1, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), input[2], 1, 2, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), input[3], 1, 3, 1, 1);
+  grid = ui_input_list_grid (uil);
 
   content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
   gtk_container_set_border_width (GTK_CONTAINER (content), 15);
@@ -142,17 +114,22 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
 
   if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
   {
+    const char *server = ui_input_list_pop_text (&uil);
+    const char *rpcpass = ui_input_list_pop_text (&uil);
+    const char *rpcuser = ui_input_list_pop_text (&uil);
+    int rpcport = ui_input_list_pop_spinbox (&uil); 
+    const char *rpcserver = ui_input_list_pop_text (&uil);
+
     /* Warn user about server changes */
-    if (strcmp (gtk_entry_get_text (GTK_ENTRY (input[4])),
-                settings_get_server_url()))
+    if (strcmp (server, settings_get_server_url()))
       popup_message ("Settings", "Note that if you changed the joiner URL, "
                                  "you may need to click Sesson->Forget Sesson.");
 
-    settings_set_rpc_server (gtk_entry_get_text (GTK_ENTRY (input[0])));
-    settings_set_rpc_port (gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (input[1])));
-    settings_set_rpc_user (gtk_entry_get_text (GTK_ENTRY (input[2])));
-    settings_set_rpc_pass (gtk_entry_get_text (GTK_ENTRY (input[3])));
-    settings_set_server_url (gtk_entry_get_text (GTK_ENTRY (input[4])));
+    settings_set_rpc_server (rpcserver);
+    settings_set_rpc_port (rpcport);
+    settings_set_rpc_user (rpcuser);
+    settings_set_rpc_pass (rpcpass);
+    settings_set_server_url (server);
     settings_save_config ();
 
     /* Reset everything */

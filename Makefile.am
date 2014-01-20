@@ -11,6 +11,7 @@ CJ_CLIENT_H=bitcoin.h	\
         global.h	\
         gtk-coin-selector.h	\
         gtk-ui.h	\
+        gtk-util.h	\
         joiner.h	\
         jsonrpc.h	\
         output.h	\
@@ -22,6 +23,7 @@ cj_client_SOURCES=main.c	\
         joiner.c	\
         jsonrpc.c	\
         gtk-ui.c	\
+        gtk-util.c	\
         gtk-coin-selector.c	\
         output.c	\
         settings.c	\
