@@ -164,6 +164,8 @@ static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointe
 
   grid = gtk_grid_new ();
   checkbutton = gtk_check_button_new_with_mnemonic ("O_btain extra addresses from bitcoind");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton),
+                                output_list_get_use_bitcoind (gui_data.output_list));
 
   gtk_grid_attach (GTK_GRID (grid), checkbutton, 1000, 0, 1, 1);
   
@@ -174,6 +176,10 @@ static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointe
   gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
   gtk_widget_show_all (dialog);
   gtk_dialog_run (GTK_DIALOG (dialog));
+
+  /* Read out results */
+  output_list_set_use_bitcoind (gui_data.output_list,
+                                gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (checkbutton)));
   gtk_widget_destroy (dialog);
   
   (void) action;
