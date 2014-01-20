@@ -33,6 +33,7 @@
 static void popup_message (const char *title, const char *text);
 static void view_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void submit_button_clicked_cb (GtkButton *bt, gpointer misc);
+static void delete_output_button_clicked_cb (GtkButton *bt, gpointer misc);
 static gboolean server_status_update (gpointer misc);
 
 struct {
@@ -167,10 +168,30 @@ static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointe
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton),
                                 output_list_get_use_bitcoind (gui_data.output_list));
 
-  gtk_grid_attach (GTK_GRID (grid), checkbutton, 1000, 0, 1, 1);
-  
+  const output_t *out = output_list_get_first_output (gui_data.output_list);
+  int i = 0;
+  while (out)
+  {
+    if (!output_get_from_bitcoind (out))
+    {
+      GtkWidget *delete_button = gtk_button_new_with_label ("Delete");
+      gtk_grid_attach (GTK_GRID (grid), gtk_label_new (output_get_address (out)), 0, i, 1, 1);
+      gtk_grid_attach (GTK_GRID (grid), delete_button, 1, i, 1, 1);
+      /* Warning: we pass out to the signal handler as non-const so
+       * that it can be deleted. */
+      g_signal_connect (G_OBJECT (delete_button), "clicked",
+                        G_CALLBACK (delete_output_button_clicked_cb), (void *) out);
+      ++i;
+    }
+    out = output_get_next (out);
+  }
 
+  gtk_grid_attach (GTK_GRID (grid), checkbutton, 0, 1000, 1, 1);
+  
   /* Display dialog */
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
+
   content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
   gtk_container_set_border_width (GTK_CONTAINER (content), 15);
   gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
@@ -202,6 +223,13 @@ static void update_display ()
   g_free (new_total_text);
   g_free (new_fee_text);
   g_free (new_noutput_text);
+}
+
+static void delete_output_button_clicked_cb (GtkButton *bt, gpointer misc)
+{
+  output_destroy (misc);
+  gtk_button_set_label (bt, "Deleted");
+  gtk_widget_set_sensitive (GTK_WIDGET (bt), FALSE);
 }
 
 static void coin_selector_toggle_cb (GtkCoinSelector *cs, gpointer misc)

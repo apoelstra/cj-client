@@ -25,26 +25,28 @@
 #include "output.h"
 
 /*!\brief Internal address linked list */
-struct _output
+struct output
 {
   char *address;
   int b_from_bitcoind;
-  struct _output *next;
+  output_t *prev;
+  output_t *next;
+  output_list_t *list;
 };
 
 struct output_list
 {
-  struct _output *head;
-  struct _output *tail;
+  output_t *head;
+  output_t *tail;
   int b_use_bitcoind;
   int len;
   int len_no_bitcoind;
 };
 
 /*!\brief Output contructor */
-static struct _output *output_new (const char *addr, int b_from_bitcoind)
+static output_t *output_new (const char *addr, int b_from_bitcoind)
 {
-  struct _output *rv = malloc (sizeof *rv);
+  output_t *rv = malloc (sizeof *rv);
   if (rv != NULL)
   {
     rv->address = malloc (1 + strlen (addr));
@@ -52,6 +54,7 @@ static struct _output *output_new (const char *addr, int b_from_bitcoind)
     {
       strcpy (rv->address, addr);
       rv->b_from_bitcoind = b_from_bitcoind;
+      rv->prev = rv->next = NULL;
     }
     else
     {
@@ -63,10 +66,24 @@ static struct _output *output_new (const char *addr, int b_from_bitcoind)
 }
 
 /*!\brief Output destructor */
-static void output_destroy (struct _output *out)
+void output_destroy (output_t *out)
 {
   if (out)
   {
+    if (out->prev)
+      out->prev->next = out->next;
+    if (out->next)
+      out->next->prev = out->prev;
+    if (out->list)
+    {
+      if (out->list->head == out)
+        out->list->head = out->next;
+      if (out->list->tail == out)
+        out->list->tail = out->prev;
+      if (out->b_from_bitcoind)
+        --out->list->len_no_bitcoind;
+      --out->list->len;
+    }
     free (out->address);
     free (out);
   }
@@ -88,11 +105,12 @@ output_list_t *output_list_new ()
 /*!\brief List destructor */
 void output_list_destroy (output_list_t *list)
 {
-  while (list->head)
+  output_t *scan = list->head;
+  while (scan)
   {
-    struct _output *next = list->head->next;
-    output_destroy (list->head);
-    list->head = next;
+    output_t *next = scan->next;
+    output_destroy (scan);
+    scan = next;
   }
   free (list);
 }
@@ -100,9 +118,12 @@ void output_list_destroy (output_list_t *list)
 /*!\brief Output list push (prepend) */
 static void output_list_push (output_list_t *list, const char *addr, int b_from_bitcoind)
 {
-  struct _output *newout = output_new (addr, b_from_bitcoind);
+  output_t *newout = output_new (addr, b_from_bitcoind);
   if (newout != NULL)
   {
+    newout->list = list;
+    if (list->head != NULL)
+      list->head->prev = newout;
     newout->next = list->head;
     list->head = newout;
     if (list->tail == NULL)
@@ -186,7 +207,7 @@ json_t *output_list_json (output_list_t *list, const jsonrpc_t *bitcoind, u64_t 
   }
 
   /* Run through the list */
-  struct _output *scan = list->head;
+  const output_t *scan = list->head;
   while (scan && total > target_size + fee)
   {
     if (list->b_use_bitcoind || !scan->b_from_bitcoind)
@@ -200,5 +221,34 @@ json_t *output_list_json (output_list_t *list, const jsonrpc_t *bitcoind, u64_t 
   json_object_set_new (rv, donation_address, json_decimal (fee, 8));
 
   return rv;
+}
+
+
+/*!\brief Returns the first output in the list */
+const output_t *output_list_get_first_output (const output_list_t *list)
+{
+  assert (list != NULL);
+  return list->head;
+}
+
+/*!\brief Did an output come from bitcoind? */
+int output_get_from_bitcoind (const output_t *out)
+{
+  assert (out != NULL);
+  return out->b_from_bitcoind;
+}
+
+/*!\brief Returns the address corresponding to some output */
+const char *output_get_address (const output_t *out)
+{
+  assert (out != NULL);
+  return out->address;
+}
+
+/*!\brief Returns the next output in the list */
+const output_t *output_get_next (const output_t *out)
+{
+  assert (out != NULL);
+  return out->next;
 }
 
