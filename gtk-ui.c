@@ -43,6 +43,7 @@ struct {
   GtkWidget *coin_selector, *output_entry;
   GtkWidget *noutput_disp, *total_disp, *fee_disp;
   GMenu *menu;
+  output_list_t *output_list;
   jsonrpc_t *bitcoind;
   joiner_t *joiner;
   u64_t per_input_fee;
@@ -151,6 +152,35 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
   (void) misc;
 }
 
+static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointer misc)
+{
+  GtkWidget *checkbutton;
+  GtkWidget *dialog, *content, *grid;
+  dialog = gtk_dialog_new_with_buttons ("Add Outputs",
+                                        GTK_WINDOW (gui_data.window),
+                                        GTK_DIALOG_DESTROY_WITH_PARENT,
+                                        "_OK", GTK_RESPONSE_ACCEPT,
+                                        NULL);
+
+  grid = gtk_grid_new ();
+  checkbutton = gtk_check_button_new_with_mnemonic ("O_btain extra addresses from bitcoind");
+
+  gtk_grid_attach (GTK_GRID (grid), checkbutton, 1000, 0, 1, 1);
+  
+
+  /* Display dialog */
+  content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+  gtk_container_set_border_width (GTK_CONTAINER (content), 15);
+  gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
+  gtk_widget_show_all (dialog);
+  gtk_dialog_run (GTK_DIALOG (dialog));
+  gtk_widget_destroy (dialog);
+  
+  (void) action;
+  (void) parameter;
+  (void) misc;
+}
+
 /* end MENU CALLBACKS */
 /* SIGNAL CALLBACKS */
 static void update_display ()
@@ -206,8 +236,8 @@ static json_t *get_tx_json (u64_t total, u64_t target, u64_t fee, unsigned n_inp
   /* Create the JSON request */
   json_t *combined = json_array ();
   json_array_append (combined, gtk_coin_selector_list (GTK_COIN_SELECTOR (gui_data.coin_selector)));
-  json_array_append (combined, output_list (gui_data.bitcoind, total, target, fee,
-                                            joiner_donation_address (gui_data.joiner)));
+  json_array_append (combined, output_list_json (gui_data.output_list, gui_data.bitcoind, total, target,
+                                                 fee, joiner_donation_address (gui_data.joiner)));
 
   return combined;
 }
@@ -313,7 +343,8 @@ static void submit_button_clicked_cb (GtkButton *bt, gpointer misc)
       popup_message ("Transaction Submission",
                      "Thanks! The status will update to reflect your transaction in about a minute.");
       char *raw;
-      output_clear_cache ();
+      output_list_destroy (gui_data.output_list);
+      gui_data.output_list = output_list_new ();
       bitcoin_add_my_transaction_raw (gui_data.bitcoind, json_string_value (result));
       raw = bitcoin_get_my_transactions_raw (gui_data.bitcoind);
       settings_set_submission (raw);
@@ -479,6 +510,7 @@ static GActionEntry app_entries[] = {
   { "submittx", menu_submittx, NULL, NULL, NULL, {0} },
   { "forgetsession", menu_forgetsession, NULL, NULL, NULL, {0} },
   { "settings", menu_settings, NULL, NULL, NULL, {0} },
+  { "addouts", menu_addoutputs, NULL, NULL, NULL, {0} },
 };
 
 
@@ -574,6 +606,7 @@ void gui_activate (GtkApplication *app, gpointer misc)
     fputs ("Found transaction already in the joiner.\n", stderr);
     bitcoin_add_my_transaction_raw (gui_data.bitcoind, settings_get_submission ());
   }
+  gui_data.output_list = output_list_new ();
   
   /* Connect to andytoshi's server to get current status */
   gui_data.joiner = joiner_new (settings_get_server_url (),
