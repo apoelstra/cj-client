@@ -116,7 +116,7 @@ void output_list_destroy (output_list_t *list)
 }
 
 /*!\brief Output list push (prepend) */
-static void output_list_push (output_list_t *list, const char *addr, int b_from_bitcoind)
+static output_t *output_list_push (output_list_t *list, const char *addr, int b_from_bitcoind)
 {
   output_t *newout = output_new (addr, b_from_bitcoind);
   if (newout != NULL)
@@ -131,6 +131,7 @@ static void output_list_push (output_list_t *list, const char *addr, int b_from_
     ++list->len;
     if (!b_from_bitcoind) ++list->len_no_bitcoind;
   }
+  return newout;
 }
 
 /*!\brief Should we query bitcoind when we are out of addresses? */
@@ -156,9 +157,9 @@ static int push_bitcoind_address (output_list_t *list, const jsonrpc_t *bitcoind
   json_t *new_addr = json_object_get (response, "result");
   if (json_is_string (new_addr))
   {
-    output_list_push (list, json_string_value (new_addr), 1);
+    int success = !!output_list_push (list, json_string_value (new_addr), 1);
     json_decref (response);
-    return 1;
+    return success;
   }
   else
   {
@@ -169,9 +170,9 @@ static int push_bitcoind_address (output_list_t *list, const jsonrpc_t *bitcoind
 }
 
 /*!\brief Add a new address without the aid of bitcoind */
-void output_list_add_new_address (output_list_t *list, const char *address)
+const output_t *output_list_add_new_address (output_list_t *list, const char *address)
 {
-  output_list_push (list, address, 0);
+  return output_list_push (list, address, 0);
 }
 
 /*!\brief Returns an output list in JSON form suitable for bitcoind */

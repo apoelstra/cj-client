@@ -34,6 +34,7 @@ static void popup_message (const char *title, const char *text);
 static void view_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void submit_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void delete_output_button_clicked_cb (GtkButton *bt, gpointer misc);
+static void add_output_button_clicked_cb (GtkButton *bt, gpointer misc);
 static gboolean server_status_update (gpointer misc);
 
 struct {
@@ -177,7 +178,7 @@ static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointe
       GtkWidget *delete_button = gtk_button_new_with_label ("Delete");
       gtk_grid_attach (GTK_GRID (grid), gtk_label_new (output_get_address (out)), 0, i, 1, 1);
       gtk_grid_attach (GTK_GRID (grid), delete_button, 1, i, 1, 1);
-      /* Warning: we pass out to the signal handler as non-const so
+      /* Warning: we pass `out' to the signal handler as non-const so
        * that it can be deleted. */
       g_signal_connect (G_OBJECT (delete_button), "clicked",
                         G_CALLBACK (delete_output_button_clicked_cb), (void *) out);
@@ -186,7 +187,14 @@ static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointe
     out = output_get_next (out);
   }
 
-  gtk_grid_attach (GTK_GRID (grid), checkbutton, 0, 1000, 1, 1);
+  GtkWidget *add_field = gtk_entry_new ();
+  GtkWidget *add_button = gtk_button_new_with_mnemonic ("_Add");
+  g_signal_connect (G_OBJECT (add_button), "clicked",
+                    G_CALLBACK (add_output_button_clicked_cb), add_field);
+
+  gtk_grid_attach (GTK_GRID (grid), add_field, 0, 10000, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), add_button, 1, 10000, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), checkbutton, 0, 10001, 1, 1);
   
   /* Display dialog */
   gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
@@ -230,6 +238,28 @@ static void delete_output_button_clicked_cb (GtkButton *bt, gpointer misc)
   output_destroy (misc);
   gtk_button_set_label (bt, "Deleted");
   gtk_widget_set_sensitive (GTK_WIDGET (bt), FALSE);
+}
+
+static void add_output_button_clicked_cb (GtkButton *bt, gpointer misc)
+{
+  GtkWidget *entry = misc;
+  GtkWidget *grid = gtk_widget_get_parent (entry);
+  const char *addr = gtk_entry_get_text (GTK_ENTRY (entry));
+
+  /* Insert the new address */
+  const output_t *newout = output_list_add_new_address (gui_data.output_list, addr);
+
+  gtk_grid_insert_row (GTK_GRID (grid), 0);
+  GtkWidget *delete_button = gtk_button_new_with_label ("Delete");
+  gtk_grid_attach (GTK_GRID (grid), gtk_label_new (addr), 0, 0, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), delete_button, 1, 0, 1, 1);
+  /* Warning: we pass `out' to the signal handler as non-const so
+   * that it can be deleted. */
+  g_signal_connect (G_OBJECT (delete_button), "clicked",
+                    G_CALLBACK (delete_output_button_clicked_cb), (void *) newout);
+  gtk_entry_set_text (GTK_ENTRY (entry), "");
+  gtk_widget_show_all (grid);
+  (void) bt;
 }
 
 static void coin_selector_toggle_cb (GtkCoinSelector *cs, gpointer misc)
