@@ -109,5 +109,8 @@ void bitcoin_my_transactions_reset ();
 /*! \brief Sign a raw transaction with the keys in memory */
 char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx);
 
+/*! \brief Check if the bitcoind wallet is unlocked */
+int bitcoin_is_unlocked (const jsonrpc_t *);
+
 #endif
 

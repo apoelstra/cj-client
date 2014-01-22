@@ -427,4 +427,14 @@ char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx)
   return rv;
 }
 
+/*! \brief Check if the bitcoind wallet is unlocked */
+int bitcoin_is_unlocked (const jsonrpc_t *js)
+{
+  json_t *response = jsonrpc_request (js, "getinfo", NULL);
+  json_t *unlocked = json_object_get (json_object_get (response, "result"), "unlocked_until");
+  if (json_is_decimal (unlocked))
+    return (json_decimal_value (unlocked) > 0);
+  else
+    return 1;
+}
 

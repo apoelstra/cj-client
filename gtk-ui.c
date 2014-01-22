@@ -437,7 +437,11 @@ static gboolean server_status_update (gpointer misc)
   /* If we have transactions in the pot, get the required privkeys 
    * from the user, even if it's not yet time to sign. */
   if (bitcoin_my_transactions_p () &&
-      !bitcoin_my_transactions_signing_keys_p ())
+      !bitcoin_my_transactions_signing_keys_p () &&
+      bitcoin_is_unlocked (gui_data.bitcoind))
+    bitcoin_my_transactions_fetch_signing_keys (gui_data.bitcoind);
+  else if (bitcoin_my_transactions_p () &&
+           !bitcoin_my_transactions_signing_keys_p ())
   {
     GtkWidget *dialog = gtk_dialog_new_with_buttons ("Wallet Passphrase",
                                                      GTK_WINDOW (gui_data.window),
