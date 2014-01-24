@@ -13,6 +13,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,7 +106,12 @@ static cfg_pair read_config_line (const char *ln)
   if (rv.var != NULL &&
       sscanf (ln, " %499[^ \t=]%*[ =\t]%n", rv.var, &val_offset) > 0)
   {
-    int len = strlen (ln + val_offset) - 1;  /* -1 to cut off newline */
+    int len;
+    while (isspace (ln[val_offset]))
+      ++val_offset;
+    len = strlen (ln + val_offset);
+    while (isspace (ln[val_offset + len - 1]))
+      --len;
     rv.val = g_strndup (ln + val_offset, len);
   }
   else
