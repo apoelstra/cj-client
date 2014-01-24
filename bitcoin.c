@@ -12,6 +12,7 @@
  * If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -200,6 +201,8 @@ void bitcoin_add_my_transaction_raw (const jsonrpc_t *js, const char *tx)
 /*! \brief Retrieves a raw transaction which is a join of all */
 char *bitcoin_get_my_transactions_raw (const jsonrpc_t *js)
 {
+  assert (js != NULL);
+
   char *rv = NULL;
   if (my_tx == NULL)
     return "";
@@ -380,43 +383,51 @@ void bitcoin_my_transactions_fetch_signing_keys (const jsonrpc_t *js)
 
 /*! \brief Getter for 'are the necessary signing keys in memory'
  * \return 1 on success, 0 on failure */
-int bitcoin_my_transactions_signing_keys_p ()
+int bitcoin_my_transactions_signing_keys_p (const jsonrpc_t *js)
 {
-  json_t *vin;
   if (my_tx == NULL)
     return 1;
   if (my_keys == NULL)
     return 0;
 
-  vin = json_array_get (my_tx, 0);
-  for (unsigned i = 0; i < json_array_size (vin); ++i)
-  {
-    json_t *input = json_array_get (vin, i);
-    if (!json_is_integer (json_object_get (input, "have_key")))
-      return 0;
-    if (!json_integer_value (json_object_get (input, "have_key")))
-      return 0;
-  }
-  return 1;
+  /* Rather than tracking keys versus inputs (which would be hard
+   * since now the user can set either independently of any bitcoind)
+   * we just sign the tx and check if we really signed it. */
+  int rv;
+  char *unsigned_tx = bitcoin_get_my_transactions_raw (js);
+  char *signed_tx   = bitcoin_my_transactions_sign_raw (js, unsigned_tx, &rv);
+  free (signed_tx);
+  free (unsigned_tx);
+
+  return rv;
 }
 
 /*! \brief Sign a raw transaction with the keys in memory
  * \return The signed raw transaction in hex, or NULL on failure */
-char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx)
+char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx, int *complete)
 {
   char *rv = NULL;
   json_t *params, *response;
   params = json_array ();
   json_array_append_new (params, json_string (tx));
-  json_array_append_new (params, json_array ());
-  json_array_append_new (params, my_keys);
+  if (my_keys != NULL)
+  {
+    json_array_append_new (params, json_array ());
+    json_array_append (params, my_keys);
+  }
   response = jsonrpc_request (js, "signrawtransaction", params);
+
+  if (complete != NULL)
+    *complete = 0;
 
   if (json_is_string (json_object_get (json_object_get (response, "result"), "hex")))
   {
     json_t *res = json_object_get (json_object_get (response, "result"), "hex");
     rv = malloc (1 + strlen (json_string_value (res)));
     strcpy (rv, json_string_value (res));
+    if (complete != NULL &&
+        json_is_boolean (json_object_get (json_object_get (response, "result"), "complete")))
+      *complete = json_boolean_value (json_object_get (json_object_get (response, "result"), "complete"));
   } else {
     fputs ("bitcoind failed to sign the raw transaction, it said:\n", stderr);
     fputs (json_dumps (response, JSON_INDENT (4)), stderr);

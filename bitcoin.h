@@ -101,13 +101,13 @@ int bitcoin_my_transactions_p ();
 void bitcoin_my_transactions_fetch_signing_keys (const jsonrpc_t *);
 
 /*! \brief Getter for 'are the necessary signing keys in memory' */
-int bitcoin_my_transactions_signing_keys_p ();
+int bitcoin_my_transactions_signing_keys_p (const jsonrpc_t *);
 
 /*! \brief Remove all transactions from the 'my transactions' API */
 void bitcoin_my_transactions_reset ();
 
 /*! \brief Sign a raw transaction with the keys in memory */
-char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx);
+char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *, const char *tx, int *complete);
 
 /*! \brief Check if the bitcoind wallet is unlocked */
 int bitcoin_is_unlocked (const jsonrpc_t *);

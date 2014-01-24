@@ -437,11 +437,11 @@ static gboolean server_status_update (gpointer misc)
   /* If we have transactions in the pot, get the required privkeys 
    * from the user, even if it's not yet time to sign. */
   if (bitcoin_my_transactions_p () &&
-      !bitcoin_my_transactions_signing_keys_p () &&
+      !bitcoin_my_transactions_signing_keys_p (gui_data.bitcoind) &&
       bitcoin_is_unlocked (gui_data.bitcoind))
     bitcoin_my_transactions_fetch_signing_keys (gui_data.bitcoind);
   else if (bitcoin_my_transactions_p () &&
-           !bitcoin_my_transactions_signing_keys_p ())
+           !bitcoin_my_transactions_signing_keys_p (gui_data.bitcoind))
   {
     GtkWidget *dialog = gtk_dialog_new_with_buttons ("Wallet Passphrase",
                                                      GTK_WINDOW (gui_data.window),
@@ -538,11 +538,11 @@ static gboolean server_status_update (gpointer misc)
                  to_sign);
       else if (settings_get_submission() == NULL)
         fputs ("Not signing transaction since we've nothing pending to sign.\n", stderr);
-      else if (!bitcoin_my_transactions_signing_keys_p())
+      else if (!bitcoin_my_transactions_signing_keys_p (gui_data.bitcoind))
         fputs ("Not signing transaction due to lack of keys.\n", stderr);
       else
       {
-        char *signed_tx = bitcoin_my_transactions_sign_raw (gui_data.bitcoind, to_sign);
+        char *signed_tx = bitcoin_my_transactions_sign_raw (gui_data.bitcoind, to_sign, NULL);
         if (signed_tx != NULL)
         {
           if (bitcoin_has_only_my_utxos_raw (gui_data.bitcoind, signed_tx))
