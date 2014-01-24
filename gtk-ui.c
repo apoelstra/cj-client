@@ -513,12 +513,17 @@ static gboolean server_status_update (gpointer misc)
   switch (joiner_status (gui_data.joiner))
   {
   case JS_STILLOPEN:
-    status_text = g_strdup_printf ("Joiner status: %d minutes until signing, about %u"
-                                   " transactions in the pot, recommended output"
-                                   " size %.8g",
-                                   joiner_minutes_remaining (gui_data.joiner),
-                                   joiner_n_transactions (gui_data.joiner),
-                                   FROM_SATOSHI (joiner_most_popular_output (gui_data.joiner)));
+    if (joiner_minutes_remaining (gui_data.joiner) >= 0)
+      status_text = g_strdup_printf ("Joiner status: %d minutes until signing, about %u"
+                                     " transactions in the pot, recommended output"
+                                     " size %.8g",
+                                     joiner_minutes_remaining (gui_data.joiner),
+                                     joiner_n_transactions (gui_data.joiner),
+                                     FROM_SATOSHI (joiner_most_popular_output (gui_data.joiner)));
+    else
+      status_text = g_strdup_printf ("Joiner status: still waiting for others to join, but "
+                                     "the session has expired. Please click Session->Forget "
+                                     "Session and try again.");
     break;
   case JS_COMPLETE:
     status_text = g_strdup_printf ("Joiner status: transaction complete, txid %s. When"
