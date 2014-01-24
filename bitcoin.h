@@ -112,5 +112,14 @@ char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *, const char *tx, int *
 /*! \brief Check if the bitcoind wallet is unlocked */
 int bitcoin_is_unlocked (const jsonrpc_t *);
 
+/*! \brief Getter for privkey json array */
+const json_t *bitcoin_my_transaction_privkeys ();
+
+/*! \brief Delete a specific privkey from the list of usable keys */
+void bitcoin_my_transactions_delete_privkey (const char *);
+
+/*! \brief Add a key to the usable-privkey array */
+const json_t *bitcoin_my_transactions_add_privkey (const char *);
+
 #endif
 

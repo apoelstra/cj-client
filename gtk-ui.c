@@ -34,7 +34,9 @@ static void popup_message (const char *title, const char *text);
 static void view_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void submit_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void delete_output_button_clicked_cb (GtkButton *bt, gpointer misc);
+static void delete_privkey_button_clicked_cb (GtkButton *bt, gpointer misc);
 static void add_output_button_clicked_cb (GtkButton *bt, gpointer misc);
+static void add_privkey_button_clicked_cb (GtkButton *bt, gpointer misc);
 static gboolean server_status_update (gpointer misc);
 
 struct {
@@ -49,6 +51,7 @@ struct {
   jsonrpc_t *bitcoind;
   joiner_t *joiner;
   u64_t per_input_fee;
+  gboolean use_bitcoind_for_privkeys;
 } gui_data;
 
 /* MENU CALLBACKS */
@@ -233,9 +236,71 @@ static void update_display ()
   g_free (new_noutput_text);
 }
 
+static void menu_addprivkeys (GSimpleAction *action, GVariant *parameter, gpointer misc)
+{
+  GtkWidget *checkbutton;
+  GtkWidget *dialog, *content, *grid;
+  dialog = gtk_dialog_new_with_buttons ("Add Private Keys",
+                                        GTK_WINDOW (gui_data.window),
+                                        GTK_DIALOG_DESTROY_WITH_PARENT,
+                                        "_OK", GTK_RESPONSE_ACCEPT,
+                                        NULL);
+
+  grid = gtk_grid_new ();
+  checkbutton = gtk_check_button_new_with_mnemonic ("O_btain missing keys from bitcoind");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton),
+                                gui_data.use_bitcoind_for_privkeys);
+
+  const json_t *privkeys = bitcoin_my_transaction_privkeys ();
+  for (unsigned i = 0; i < json_array_size (privkeys); ++i)
+  {
+    const char *key = json_string_value (json_array_get (privkeys, i));
+    GtkWidget *delete_button = gtk_button_new_with_label ("Delete");
+    gtk_grid_attach (GTK_GRID (grid), gtk_label_new (key), 0, i, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), delete_button, 1, i, 1, 1);
+    g_signal_connect (G_OBJECT (delete_button), "clicked",
+                      G_CALLBACK (delete_privkey_button_clicked_cb), (gpointer) key);
+  }
+
+  GtkWidget *add_field = gtk_entry_new ();
+  GtkWidget *add_button = gtk_button_new_with_mnemonic ("_Add");
+  g_signal_connect (G_OBJECT (add_button), "clicked",
+                    G_CALLBACK (add_privkey_button_clicked_cb), add_field);
+
+  gtk_grid_attach (GTK_GRID (grid), add_field, 0, 10000, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), add_button, 1, 10000, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), checkbutton, 0, 10001, 1, 1);
+  
+  /* Display dialog */
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
+
+  content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+  gtk_container_set_border_width (GTK_CONTAINER (content), 15);
+  gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
+  gtk_widget_show_all (dialog);
+  gtk_dialog_run (GTK_DIALOG (dialog));
+
+  /* Read out results */
+  gui_data.use_bitcoind_for_privkeys =
+    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (checkbutton));
+  gtk_widget_destroy (dialog);
+
+  (void) action;
+  (void) parameter;
+  (void) misc;
+}
+
 static void delete_output_button_clicked_cb (GtkButton *bt, gpointer misc)
 {
   output_destroy (misc);
+  gtk_button_set_label (bt, "Deleted");
+  gtk_widget_set_sensitive (GTK_WIDGET (bt), FALSE);
+}
+
+static void delete_privkey_button_clicked_cb (GtkButton *bt, gpointer misc)
+{
+  bitcoin_my_transactions_delete_privkey (misc);
   gtk_button_set_label (bt, "Deleted");
   gtk_widget_set_sensitive (GTK_WIDGET (bt), FALSE);
 }
@@ -257,6 +322,27 @@ static void add_output_button_clicked_cb (GtkButton *bt, gpointer misc)
    * that it can be deleted. */
   g_signal_connect (G_OBJECT (delete_button), "clicked",
                     G_CALLBACK (delete_output_button_clicked_cb), (void *) newout);
+  gtk_entry_set_text (GTK_ENTRY (entry), "");
+  gtk_widget_show_all (grid);
+  (void) bt;
+}
+
+static void add_privkey_button_clicked_cb (GtkButton *bt, gpointer misc)
+{
+  GtkWidget *entry = misc;
+  GtkWidget *grid = gtk_widget_get_parent (entry);
+  const char *key = gtk_entry_get_text (GTK_ENTRY (entry));
+
+  /* Insert the new address */
+  const json_t *newkey = bitcoin_my_transactions_add_privkey (key);
+
+  gtk_grid_insert_row (GTK_GRID (grid), 0);
+  GtkWidget *delete_button = gtk_button_new_with_label ("Delete");
+  gtk_grid_attach (GTK_GRID (grid), gtk_label_new (key), 0, 0, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), delete_button, 1, 0, 1, 1);
+  g_signal_connect (G_OBJECT (delete_button), "clicked",
+                    G_CALLBACK (delete_privkey_button_clicked_cb),
+                    (void *) json_string_value (newkey));
   gtk_entry_set_text (GTK_ENTRY (entry), "");
   gtk_widget_show_all (grid);
   (void) bt;
@@ -434,66 +520,77 @@ static void pp_entry_activate_cb (GtkEntry *en, gpointer dialog)
 
 static gboolean server_status_update (gpointer misc)
 {
+  int have_tx_in_pot = bitcoin_my_transactions_p();
+  int have_all_keys  = bitcoin_my_transactions_signing_keys_p (gui_data.bitcoind);
+  int use_bitcoind   = gui_data.use_bitcoind_for_privkeys;
+  int bitcoin_locked = !bitcoin_is_unlocked (gui_data.bitcoind);
   /* If we have transactions in the pot, get the required privkeys 
    * from the user, even if it's not yet time to sign. */
-  if (bitcoin_my_transactions_p () &&
-      !bitcoin_my_transactions_signing_keys_p (gui_data.bitcoind) &&
-      bitcoin_is_unlocked (gui_data.bitcoind))
-    bitcoin_my_transactions_fetch_signing_keys (gui_data.bitcoind);
-  else if (bitcoin_my_transactions_p () &&
-           !bitcoin_my_transactions_signing_keys_p (gui_data.bitcoind))
+  fprintf (stderr, "Updating keylist (havetx %d  havekeys %d  usebitcoin %d  bitcoin_locked %d)\n",
+           have_tx_in_pot, have_all_keys, use_bitcoind, bitcoin_locked);
+  if (have_tx_in_pot)
   {
-    GtkWidget *dialog = gtk_dialog_new_with_buttons ("Wallet Passphrase",
-                                                     GTK_WINDOW (gui_data.window),
-                                                     GTK_DIALOG_DESTROY_WITH_PARENT,
-                                                     "_OK", GTK_RESPONSE_ACCEPT,
-                                                     "_Cancel", GTK_RESPONSE_REJECT,
-                                                     NULL);
-    GtkWidget *content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-    GtkWidget *message = gtk_label_new ("You have a transaction in the joiner. "
-                                        "To ensure that it can be signed in a "
-                                        "timely manner, please enter your wallet "
-                                        "passphrase so that the Coinjoin Client "
-                                        "can access your signing keys.");
-    GtkWidget *pp_label = gtk_label_new ("Passphrase: ");
-    GtkWidget *pp_entry = gtk_entry_new ();
-
-    GtkWidget *grid = gtk_grid_new ();
-
-    g_signal_connect (G_OBJECT (pp_entry), "activate",
-                      G_CALLBACK (pp_entry_activate_cb), dialog);
-
-    gtk_label_set_line_wrap (GTK_LABEL (message), TRUE);
-    gtk_misc_set_alignment (GTK_MISC (pp_label), 1, 0.5);
-    gtk_entry_set_visibility (GTK_ENTRY (pp_entry), FALSE);
-    gtk_entry_set_width_chars (GTK_ENTRY (pp_entry), 15);
-    gtk_grid_attach (GTK_GRID (grid), message, 0, 0, 4, 1);
-    gtk_grid_attach (GTK_GRID (grid), pp_label, 1, 1, 1, 1);
-    gtk_grid_attach (GTK_GRID (grid), pp_entry, 2, 1, 1, 1);
-
-    gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
-    gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
-    gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
-    gtk_container_set_border_width (GTK_CONTAINER (content), 3);
-    gtk_widget_show_all (dialog);
-    while (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+    if (!have_all_keys) 
     {
-      json_t *params, *response;
-      params = json_array ();
-      json_array_append_new (params, json_string (gtk_entry_get_text (GTK_ENTRY (pp_entry))));
-      json_array_append_new (params, json_integer (WALLET_UNLOCK_TIME));
-      response = jsonrpc_request (gui_data.bitcoind, "walletpassphrase", params);
-      /* Did the passphrase succeed? Then get the keys and let the user go. */
-      if (json_is_null (json_object_get (response, "error")))
-      {
+      if (!use_bitcoind)
+        fputs ("Warn: still missing privkeys but not allowed to ask bitcoind.\n", stderr);
+      else if (!bitcoin_locked)
         bitcoin_my_transactions_fetch_signing_keys (gui_data.bitcoind);
-        break;
-      } else popup_message ("Passphrase Error", "The passphrase you entered was incorrect.");
-      json_decref (response);
-      json_decref (params);
+      else
+      {
+        GtkWidget *dialog = gtk_dialog_new_with_buttons ("Wallet Passphrase",
+                                                         GTK_WINDOW (gui_data.window),
+                                                         GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                         "_OK", GTK_RESPONSE_ACCEPT,
+                                                         "_Cancel", GTK_RESPONSE_REJECT,
+                                                         NULL);
+        GtkWidget *content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+        GtkWidget *message = gtk_label_new ("You have a transaction in the joiner. "
+                                            "To ensure that it can be signed in a "
+                                            "timely manner, please enter your wallet "
+                                            "passphrase so that the Coinjoin Client "
+                                            "can access your signing keys.");
+        GtkWidget *pp_label = gtk_label_new ("Passphrase: ");
+        GtkWidget *pp_entry = gtk_entry_new ();
+
+        GtkWidget *grid = gtk_grid_new ();
+
+        g_signal_connect (G_OBJECT (pp_entry), "activate",
+                          G_CALLBACK (pp_entry_activate_cb), dialog);
+
+        gtk_label_set_line_wrap (GTK_LABEL (message), TRUE);
+        gtk_misc_set_alignment (GTK_MISC (pp_label), 1, 0.5);
+        gtk_entry_set_visibility (GTK_ENTRY (pp_entry), FALSE);
+        gtk_entry_set_width_chars (GTK_ENTRY (pp_entry), 15);
+        gtk_grid_attach (GTK_GRID (grid), message, 0, 0, 4, 1);
+        gtk_grid_attach (GTK_GRID (grid), pp_label, 1, 1, 1, 1);
+        gtk_grid_attach (GTK_GRID (grid), pp_entry, 2, 1, 1, 1);
+
+        gtk_grid_set_row_spacing (GTK_GRID (grid), 5);
+        gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
+        gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
+        gtk_container_set_border_width (GTK_CONTAINER (content), 3);
+        gtk_widget_show_all (dialog);
+        while (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+        {
+          json_t *params, *response;
+          params = json_array ();
+          json_array_append_new (params, json_string (gtk_entry_get_text (GTK_ENTRY (pp_entry))));
+          json_array_append_new (params, json_integer (WALLET_UNLOCK_TIME));
+          response = jsonrpc_request (gui_data.bitcoind, "walletpassphrase", params);
+          /* Did the passphrase succeed? Then get the keys and let the user go. */
+          if (json_is_null (json_object_get (response, "error")))
+          {
+            bitcoin_my_transactions_fetch_signing_keys (gui_data.bitcoind);
+            break;
+          } else popup_message ("Passphrase Error", "The passphrase you entered was incorrect.");
+          json_decref (response);
+          json_decref (params);
+        }
+        gtk_widget_destroy (dialog);
+      }
     }
-    gtk_widget_destroy (dialog);
-  }
+  } /* end if(have_tx_in_pot) */
 
   /* Refresh the coins list */
   utxo_list_t *coins = bitcoin_get_utxos (gui_data.bitcoind);
@@ -585,6 +682,7 @@ static GActionEntry app_entries[] = {
   { "forgetsession", menu_forgetsession, NULL, NULL, NULL, {0} },
   { "settings", menu_settings, NULL, NULL, NULL, {0} },
   { "addouts", menu_addoutputs, NULL, NULL, NULL, {0} },
+  { "addprivs", menu_addprivkeys, NULL, NULL, NULL, {0} },
 };
 
 
@@ -594,6 +692,9 @@ void gui_activate (GtkApplication *app, gpointer misc)
   GtkWidget *label[5];
   GtkWidget *button[2];
   GtkBuilder *builder;
+
+  /* set any gui_data vars that have locally-determinable values */
+  gui_data.use_bitcoind_for_privkeys = TRUE;
   
   /* Create menu actions */
   g_action_map_add_action_entries (G_ACTION_MAP (app), app_entries, 

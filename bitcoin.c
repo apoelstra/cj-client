@@ -339,45 +339,37 @@ void bitcoin_my_transactions_fetch_signing_keys (const jsonrpc_t *js)
   for (unsigned i = 0; i < json_array_size (vin); ++i)
   {
     json_t *input = json_array_get (vin, i);
-    int has_key = 0;
-    /* we keep track of our key posession with a flag my_tx */
-    if (json_is_integer (json_object_get (input, "have_key")))
-      has_key = json_integer_value (json_object_get (input, "have_key"));
-    if (!has_key)
+    json_t *response, *addresses;
+    json_t *params = json_array ();
+    json_array_append (params, json_object_get (input, "txid"));
+    json_array_append (params, json_object_get (input, "vout"));
+
+    response = jsonrpc_request (js, "gettxout", params);
+    addresses = json_object_get (json_object_get (json_object_get (response, "result"), "scriptPubKey"), "addresses");
+    if (json_is_array (addresses))
     {
-      int success = 1;
-      json_t *response, *addresses;
-      json_t *params = json_array ();
-      json_array_append (params, json_object_get (input, "txid"));
-      json_array_append (params, json_object_get (input, "vout"));
-
-      response = jsonrpc_request (js, "gettxout", params);
-      addresses = json_object_get (json_object_get (json_object_get (response, "result"), "scriptPubKey"), "addresses");
-      if (json_is_array (addresses))
+      for (unsigned i = 0; i < json_array_size (addresses); ++i)
       {
-        for (unsigned i = 0; i < json_array_size (addresses); ++i)
+        json_t *address = json_array_get (addresses, i);
+
+        json_t *response;
+        json_t *params = json_array ();
+        json_array_append (params, address);
+        response = jsonrpc_request (js, "dumpprivkey", params);
+        /* add the privkey to our store */
+        if (json_is_string (json_object_get (response, "result")))
         {
-          json_t *address = json_array_get (addresses, i);
-
-          json_t *response;
-          json_t *params = json_array ();
-          json_array_append (params, address);
-          response = jsonrpc_request (js, "dumpprivkey", params);
-          /* add the privkey to our store */
-          if (json_is_string (json_object_get (response, "result")))
-          {
-            fprintf (stderr, "Loaded privkey for address %s into memory.\n",
-                     json_string_value (address));
-            json_array_append (my_keys, json_object_get (response, "result"));
-          }
+          const char *str_address = json_string_value (address);
+          const char *str_privkey = json_string_value (json_object_get (response, "result"));
+          fprintf (stderr, "Loaded privkey for address %s into memory.\n",
+                   str_address);
+          bitcoin_my_transactions_add_privkey (str_privkey);
         }
-      } else success = 0;
-
-      if (success)
-        json_object_set_new (input, "have_key", json_integer (1));
-      json_decref (response);
-      json_decref (params);
+      }
     }
+
+    json_decref (response);
+    json_decref (params);
   }
 }
 
@@ -410,11 +402,11 @@ char *bitcoin_my_transactions_sign_raw (const jsonrpc_t *js, const char *tx, int
   json_t *params, *response;
   params = json_array ();
   json_array_append_new (params, json_string (tx));
-  if (my_keys != NULL)
-  {
-    json_array_append_new (params, json_array ());
-    json_array_append (params, my_keys);
-  }
+  if (my_keys == NULL)
+    my_keys = json_array ();
+
+  json_array_append_new (params, json_null());  /* skip 'unknown inputs' param */
+  json_array_append (params, my_keys);
   response = jsonrpc_request (js, "signrawtransaction", params);
 
   if (complete != NULL)
@@ -447,5 +439,45 @@ int bitcoin_is_unlocked (const jsonrpc_t *js)
     return (json_decimal_value (unlocked) > 0);
   else
     return 1;
+}
+
+/*! \brief Getter for privkey json array */
+const json_t *bitcoin_my_transaction_privkeys ()
+{
+  return my_keys;
+}
+
+/*! \brief Delete a specific privkey from the list of usable keys */
+void bitcoin_my_transactions_delete_privkey (const char *key)
+{
+  if (my_keys == NULL)
+    return;
+  for (unsigned i = 0; i < json_array_size (my_keys); ++i)
+  {
+    const char *cmp = json_string_value (json_array_get (my_keys, i));
+    if (!strcmp (key, cmp))
+    {
+      json_array_remove (my_keys, i);
+      break;
+    }
+  }
+}
+
+/*! \brief Add a key to the usable-privkey array */
+const json_t *bitcoin_my_transactions_add_privkey (const char *key)
+{
+  if (my_keys == NULL)
+    my_keys = json_array ();
+  /* Check for duplicates */
+  for (unsigned i = 0; i < json_array_size (my_keys); ++i)
+  {
+    const char *cmp = json_string_value (json_array_get (my_keys, i));
+    if (!strcmp (key, cmp))
+      return json_array_get (my_keys, i);
+  }
+  /* If none was found, add a new one */
+  json_t *new_key = json_string (key);
+  json_array_append_new (my_keys, new_key);
+  return new_key;
 }
 
