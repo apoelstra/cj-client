@@ -499,8 +499,9 @@ static gboolean server_status_update (gpointer misc)
   utxo_list_t *coins = bitcoin_get_utxos (gui_data.bitcoind);
   if (coins != NULL)
   {
-    gtk_coin_selector_clear (GTK_COIN_SELECTOR (gui_data.coin_selector));
+    gtk_coin_selector_mark_all_stale (GTK_COIN_SELECTOR (gui_data.coin_selector));
     gtk_coin_selector_add_coins (GTK_COIN_SELECTOR (gui_data.coin_selector), coins);
+    gtk_coin_selector_clear_stale (GTK_COIN_SELECTOR (gui_data.coin_selector));
   }
   bitcoin_utxos_destroy (coins);
 

@@ -41,6 +41,12 @@ unsigned gtk_coin_selector_count (GtkCoinSelector *cs);
 u64_t gtk_coin_selector_total (GtkCoinSelector *);
 json_t *gtk_coin_selector_list (GtkCoinSelector *);
 
+/*! \brief Mark all coins as stale (to be deleted on next update) */
+void gtk_coin_selector_mark_all_stale (GtkCoinSelector *cs);
+
+/*! \brief Remove all coins marked stale */
+void gtk_coin_selector_clear_stale (GtkCoinSelector *cs);
+
 /*! \brief Remove all coins from the GtkCoinSelector */
 void gtk_coin_selector_clear (GtkCoinSelector *cs);
 
