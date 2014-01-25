@@ -161,10 +161,15 @@ static int push_bitcoind_address (output_list_t *list, const jsonrpc_t *bitcoind
     json_decref (response);
     return success;
   }
-  else
+  else if (response)
   {
     fprintf (stderr, "Received unexpected result %s\n", json_dumps (response, 0));
     json_decref (response);
+    return 0;
+  }
+  else
+  {
+    fputs ("Unable to get address (bitcoind is dead?)\n", stderr);
     return 0;
   }
 }
