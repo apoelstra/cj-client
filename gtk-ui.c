@@ -503,7 +503,8 @@ static void submit_button_clicked_cb (GtkButton *bt, gpointer misc)
       settings_save_config ();
     }
   }
-  else puts (json_dumps (response, JSON_INDENT(4)));
+  else if (response) puts (json_dumps (response, JSON_INDENT(4)));
+  else puts ("Failed to createrawtransaction (bitcoind is down?)");
   json_decref (response);
 
   (void) bt;
