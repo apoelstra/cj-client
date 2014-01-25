@@ -157,6 +157,43 @@ static void menu_settings (GSimpleAction *action, GVariant *parameter, gpointer 
   (void) misc;
 }
 
+static void menu_addinput (GSimpleAction *action, GVariant *parameter, gpointer misc)
+{
+  ui_input_list_t *uil = NULL;
+  GtkWidget *dialog, *content, *grid;
+  dialog = gtk_dialog_new_with_buttons ("Add Inputs",
+                                        GTK_WINDOW (gui_data.window),
+                                        GTK_DIALOG_DESTROY_WITH_PARENT,
+                                        "_OK", GTK_RESPONSE_ACCEPT,
+                                        NULL);
+
+  ui_input_list_push_spinbox (&uil, "Value (sat):", 0, 0, ((u64_t) 1 << 40), 1);
+  ui_input_list_push_spinbox (&uil, "Index:", 0, 0, 10000, 1);
+  ui_input_list_push_text (&uil, "Tx ID:", "");
+  grid = ui_input_list_grid (uil);
+
+  content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+  gtk_container_set_border_width (GTK_CONTAINER (content), 15);
+  gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 5);
+  gtk_widget_show_all (dialog);
+
+  if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+  {
+    const char *txid = ui_input_list_pop_text (&uil);
+    unsigned vout = ui_input_list_pop_spinbox (&uil);
+    u64_t value = ui_input_list_pop_spinbox (&uil);
+
+    gtk_coin_selector_add_coin (GTK_COIN_SELECTOR (gui_data.coin_selector),
+                                txid, vout, value);
+  }
+
+  gtk_widget_destroy (dialog);
+  
+  (void) action;
+  (void) parameter;
+  (void) misc;
+}
+
 static void menu_addoutputs (GSimpleAction *action, GVariant *parameter, gpointer misc)
 {
   GtkWidget *checkbutton;
@@ -682,6 +719,7 @@ static GActionEntry app_entries[] = {
   { "submittx", menu_submittx, NULL, NULL, NULL, {0} },
   { "forgetsession", menu_forgetsession, NULL, NULL, NULL, {0} },
   { "settings", menu_settings, NULL, NULL, NULL, {0} },
+  { "addins", menu_addinput, NULL, NULL, NULL, {0} },
   { "addouts", menu_addoutputs, NULL, NULL, NULL, {0} },
   { "addprivs", menu_addprivkeys, NULL, NULL, NULL, {0} },
 };

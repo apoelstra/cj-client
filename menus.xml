@@ -55,7 +55,7 @@
 "      <attribute name='label' translatable='yes'>_Advanced</attribute>"
 "      <section>"
 "        <item>"
-"          <attribute name='label' translatable='yes'>Add _Inputs...</attribute>"
+"          <attribute name='label' translatable='yes'>Add _Input...</attribute>"
 "          <attribute name='action'>app.addins</attribute>"
 "        </item>"
 "        <item>"

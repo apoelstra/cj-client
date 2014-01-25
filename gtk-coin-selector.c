@@ -38,6 +38,7 @@ enum {
   DISP_VALUE_COL,
   NCONFIRMS_COL,
   STALE_COL,
+  NOSTALE_COL,
   N_COLS
 };
 
@@ -161,7 +162,8 @@ static void gtk_coin_selector_init (GtkCoinSelector *cs)
                  /* VALUE_COL       */ G_TYPE_UINT64,
                  /* DISP_VALUE_COL  */ G_TYPE_DOUBLE,
                  /* NCONFIRMS_COL   */ G_TYPE_UINT,
-                 /* STALE_COL       */ G_TYPE_BOOLEAN);
+                 /* STALE_COL       */ G_TYPE_BOOLEAN,
+                 /* NOSTALE_COL     */ G_TYPE_BOOLEAN);
 
   gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_selected, -1);
   gtk_tree_view_insert_column (GTK_TREE_VIEW (cs), col_value, -1);
@@ -179,6 +181,44 @@ static void gtk_coin_selector_init (GtkCoinSelector *cs)
 GtkWidget *gtk_coin_selector_new (void)
 {
   return GTK_WIDGET (g_object_new (GTK_COIN_SELECTOR_TYPE, NULL));
+}
+
+/*! \brief Add a single coin to the GtkCoinSelector */
+void gtk_coin_selector_add_coin (GtkCoinSelector *cs, const char *txid, unsigned vout, u64_t value)
+{
+  GtkTreeIter iter;
+  char *truncated_txid = g_strdup_printf ("%.12s..., output %u", txid, vout);
+  int found = 0;
+  /* Look if the transaction is already in there. If so, gtk_list_store_set
+   * will just refresh its values and mark it non-stale. Otherwise we add
+   * a new item. */
+  if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (cs->list_store), &iter))
+  {
+    do
+      {
+        char *scan_txid;
+        unsigned scan_vout;
+        gtk_tree_model_get (GTK_TREE_MODEL (cs->list_store),
+                            &iter, FULL_TXID_COL, &scan_txid, VOUT_COL, &scan_vout, -1);
+        if (scan_vout == vout && !strcmp (scan_txid, txid))
+          found = 1;
+        g_free (scan_txid);
+      }
+    while (!found && gtk_tree_model_iter_next (GTK_TREE_MODEL (cs->list_store), &iter));
+  }
+  if (!found)
+    gtk_list_store_append (cs->list_store, &iter);
+  gtk_list_store_set (cs->list_store, &iter,
+                      TXID_COL,     truncated_txid,
+                      ADDRESS_COL,  "[manually added input]",
+                      FULL_TXID_COL, txid,
+                      VOUT_COL,     vout,
+                      VALUE_COL,    value,
+                      DISP_VALUE_COL, FROM_SATOSHI (value),
+                      NCONFIRMS_COL, 0,
+                      NOSTALE_COL, TRUE,
+                      -1);
+  g_free (truncated_txid);
 }
 
 /*! \brief Add a list of coins to the GtkCoinSelector */
@@ -224,6 +264,7 @@ void gtk_coin_selector_add_coins (GtkCoinSelector *cs, const utxo_list_t *utxo_l
                         DISP_VALUE_COL, FROM_SATOSHI (bitcoin_utxo_value (utxo_list)),
                         NCONFIRMS_COL, bitcoin_utxo_nconfirms (utxo_list),
                         STALE_COL, FALSE,
+                        NOSTALE_COL, FALSE,
                         -1);
     g_free (truncated_txid);
     utxo_list = bitcoin_utxo_next (utxo_list);
@@ -237,7 +278,10 @@ void gtk_coin_selector_mark_all_stale (GtkCoinSelector *cs)
   if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (cs->list_store), &iter))
     do
     {
-      gtk_list_store_set (cs->list_store, &iter, STALE_COL, TRUE, -1);
+      gboolean nostale;
+      gtk_tree_model_get (GTK_TREE_MODEL (cs->list_store), &iter, NOSTALE_COL, &nostale, -1);
+      if (!nostale)
+        gtk_list_store_set (cs->list_store, &iter, STALE_COL, TRUE, -1);
     }
     while (gtk_tree_model_iter_next (GTK_TREE_MODEL (cs->list_store), &iter));
 }
