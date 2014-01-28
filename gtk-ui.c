@@ -760,7 +760,8 @@ void gui_activate (GtkApplication *app, gpointer misc)
   label[2] = gtk_label_new ("Number of outputs:");
   label[3] = gtk_label_new ("Total join amount:");
   label[4] = gtk_label_new ("Joiner/network fee:");
-  gui_data.output_entry = gtk_spin_button_new_with_range (0.5, 10000, 0.05);
+  gui_data.output_entry = gtk_spin_button_new_with_range (0.05, 10000, 0.05);
+  gtk_spin_button_set_value (GTK_SPIN_BUTTON (gui_data.output_entry), 0.5);
   gtk_spin_button_set_digits (GTK_SPIN_BUTTON (gui_data.output_entry), 8);
   gui_data.noutput_disp = gtk_label_new ("");
   gui_data.total_disp = gtk_label_new ("");
