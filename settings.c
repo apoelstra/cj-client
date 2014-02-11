@@ -110,7 +110,7 @@ static cfg_pair read_config_line (const char *ln)
     while (isspace (ln[val_offset]))
       ++val_offset;
     len = strlen (ln + val_offset);
-    while (isspace (ln[val_offset + len - 1]))
+    while (isspace (ln[val_offset + len - 1]) && len > 0)
       --len;
     rv.val = g_strndup (ln + val_offset, len);
   }
