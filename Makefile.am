@@ -1,4 +1,5 @@
 
+ACLOCAL_AMFLAGS = -Im4
 AM_CFLAGS = -Ijansson/src/ $(CJ_CLIENT_CFLAGS)
 SUBDIRS = jansson
 bin_PROGRAMS = cj-client

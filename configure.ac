@@ -21,6 +21,7 @@ AC_CONFIG_SRCDIR([./joiner.c])
 AC_CONFIG_HEADERS([./config.h])
 
 dnl Checks for programs.
+AM_PROG_AR
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CPP
